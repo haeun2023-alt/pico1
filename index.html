@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1차시 · Hello, Pico! — 인공지능과 피지컬 컴퓨팅</title>
+<meta name="description" content="라즈베리파이 피코 2 W 첫 시간. Thonny 설치부터 내장 LED 깜빡이기까지.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0EA;
+  --paper-2:#F7F9F5;
+  --ink:#15211C;
+  --ink-soft:#4C5B54;
+  --board:#0E5C3F;
+  --board-dk:#083A28;
+  --copper:#A9682B;
+  --led:#7CE05A;
+  --rule:#C6D0C6;
+  --warn:#8A4B12;
+  --max:37rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:4.5rem}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'IBM Plex Sans KR',system-ui,sans-serif;
+  font-weight:400;
+  font-size:17px;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 1.25rem}
+
+/* ---------- top bar ---------- */
+.bar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(237,240,234,.92);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--rule);
+}
+.bar-in{
+  max-width:var(--max);margin:0 auto;padding:.55rem 1.25rem;
+  display:flex;gap:1rem;align-items:center;
+  overflow-x:auto;scrollbar-width:none;
+}
+.bar-in::-webkit-scrollbar{display:none}
+.bar a{
+  color:var(--ink-soft);text-decoration:none;white-space:nowrap;
+  font-size:.82rem;font-weight:500;padding:.2rem 0;border-bottom:2px solid transparent;
+}
+.bar a:hover,.bar a:focus-visible{color:var(--board);border-bottom-color:var(--board)}
+
+/* ---------- hero ---------- */
+.hero{padding:3.5rem 0 2.5rem}
+.kicker{font-size:.8rem;color:var(--copper);font-weight:600;letter-spacing:.02em}
+h1{
+  font-size:clamp(2.1rem,7vw,3.1rem);line-height:1.12;font-weight:700;
+  letter-spacing:-.03em;margin:.5rem 0 .9rem;
+}
+h1 .en{font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-.02em}
+.lede{font-size:1.06rem;color:var(--ink-soft);font-weight:300;max-width:32rem}
+
+/* ---------- sim ---------- */
+.sim{
+  margin:2.25rem 0 0;
+  background:var(--paper-2);
+  border:1px solid var(--rule);
+  border-radius:4px;
+  overflow:hidden;
+}
+.sim-stage{display:flex;justify-content:center;padding:1.5rem 1rem .5rem}
+.sim svg{width:170px;height:auto}
+#bulb{transition:opacity .04s linear}
+.sim-ctl{padding:.75rem 1.1rem 1.1rem;border-top:1px solid var(--rule);margin-top:.5rem}
+.btns{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.85rem}
+button.p{
+  font:inherit;font-size:.83rem;font-weight:500;
+  background:transparent;color:var(--ink-soft);
+  border:1px solid var(--rule);border-radius:2px;
+  padding:.3rem .7rem;cursor:pointer;
+}
+button.p:hover{border-color:var(--board);color:var(--board)}
+button.p[aria-pressed="true"]{background:var(--board);border-color:var(--board);color:#fff}
+button.p:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.slider-row{display:flex;align-items:center;gap:.75rem}
+input[type=range]{flex:1;accent-color:var(--board);min-width:0}
+.readout{
+  font-family:'IBM Plex Mono',monospace;font-size:.82rem;
+  color:var(--board);white-space:nowrap;
+}
+.sim-note{font-size:.78rem;color:var(--ink-soft);margin-top:.6rem}
+
+/* ---------- typography ---------- */
+section{padding:2.75rem 0;border-top:1px solid var(--rule)}
+h2{
+  font-size:1.45rem;font-weight:700;letter-spacing:-.02em;line-height:1.3;
+  margin-bottom:.35rem;
+}
+.h2sub{font-size:.85rem;color:var(--copper);font-weight:500;margin-bottom:1.3rem}
+h3{font-size:1.05rem;font-weight:600;margin:1.9rem 0 .55rem;letter-spacing:-.01em}
+p{margin:.85rem 0}
+p+p{margin-top:.7rem}
+strong{font-weight:600}
+a{color:var(--board)}
+ul,ol{margin:.85rem 0 .85rem 1.15rem}
+li{margin:.3rem 0;padding-left:.2rem}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:22rem}
+th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{
+  font-weight:600;font-size:.8rem;color:var(--ink-soft);
+  border-bottom:1.5px solid var(--ink);
+}
+tbody th{font-weight:500;color:var(--ink-soft);white-space:nowrap}
+
+/* ---------- steps ---------- */
+.step{
+  display:grid;grid-template-columns:1.9rem 1fr;gap:.1rem 1rem;
+  margin:1.5rem 0;
+}
+.step-n{
+  font-family:'IBM Plex Mono',monospace;font-size:.9rem;font-weight:600;
+  color:#fff;background:var(--board);
+  width:1.7rem;height:1.7rem;border-radius:50%;
+  display:grid;place-items:center;margin-top:.15rem;
+}
+.step-b{grid-column:2}
+.step-t{font-weight:600;margin:.1rem 0 .25rem}
+.step p{margin:.35rem 0}
+
+/* ---------- code ---------- */
+.code{
+  position:relative;margin:1.1rem 0;
+  background:var(--board-dk);border-radius:3px;
+}
+.code pre{
+  overflow-x:auto;padding:1rem 1.1rem;
+  font-family:'IBM Plex Mono','IBM Plex Sans KR',monospace;
+  font-size:.85rem;line-height:1.65;color:#DCE8DF;
+}
+.code .cm{color:#7FA88E}
+.code .kw{color:#8FD9A8;font-weight:600}
+.code .st{color:#E8C48A}
+.code .nu{color:#E8C48A}
+.copy{
+  position:absolute;top:.45rem;right:.45rem;
+  font:inherit;font-size:.7rem;font-family:'IBM Plex Mono',monospace;
+  background:rgba(255,255,255,.08);color:#B9CFC0;
+  border:none;border-radius:2px;padding:.25rem .5rem;cursor:pointer;
+}
+.copy:hover{background:rgba(255,255,255,.18);color:#fff}
+code.inl{
+  font-family:'IBM Plex Mono',monospace;font-size:.88em;
+  background:#DDE4DA;padding:.08em .35em;border-radius:2px;
+}
+
+/* ---------- callouts ---------- */
+.note{
+  border-left:3px solid var(--copper);
+  background:var(--paper-2);
+  padding:.9rem 1.1rem;margin:1.4rem 0;font-size:.93rem;
+}
+.note-t{font-weight:600;margin-bottom:.25rem}
+.note.tip{border-left-color:var(--board)}
+.note p{margin:.4rem 0}
+.note p:first-of-type{margin-top:0}
+.note p:last-child{margin-bottom:0}
+
+/* ---------- figure placeholder ---------- */
+.fig{
+  border:1px dashed var(--rule);background:var(--paper-2);
+  padding:1.4rem 1rem;text-align:center;
+  font-size:.82rem;color:var(--ink-soft);margin:1.2rem 0;border-radius:3px;
+}
+
+.shot{margin:1.4rem 0}
+.shot img{
+  display:block;width:100%;height:auto;
+  border:1px solid var(--rule);border-radius:3px;background:#fff;
+}
+.shot figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:.5rem}
+
+/* ---------- quiz ---------- */
+details{border-bottom:1px solid var(--rule);padding:.85rem 0}
+details summary{
+  cursor:pointer;font-weight:500;list-style:none;
+  display:flex;gap:.6rem;align-items:baseline;
+}
+details summary::-webkit-details-marker{display:none}
+details summary::before{
+  content:"?";font-family:'IBM Plex Mono',monospace;color:var(--copper);
+  font-weight:600;flex:none;
+}
+details[open] summary::before{content:"!";color:var(--board)}
+details .ans{padding:.5rem 0 0 1.2rem;color:var(--ink-soft);font-size:.93rem}
+
+/* ---------- checklist ---------- */
+.check{list-style:none;margin:1.1rem 0 0;padding:0}
+.check li{display:flex;gap:.65rem;align-items:flex-start;margin:.5rem 0;padding:0}
+.check input{margin-top:.42rem;accent-color:var(--board);width:1rem;height:1rem;flex:none}
+.check label{cursor:pointer}
+.check input:checked+label{color:var(--ink-soft);text-decoration:line-through}
+
+/* ---------- footer ---------- */
+footer{
+  border-top:1px solid var(--rule);padding:2.25rem 0 3.5rem;
+  font-size:.85rem;color:var(--ink-soft);
+}
+.next{
+  background:var(--board);color:#EAF3EC;border-radius:4px;
+  padding:1.5rem 1.4rem;margin:1rem 0 0;
+}
+.next h2{color:#fff;font-size:1.2rem;margin-bottom:.4rem}
+.next p{margin:.4rem 0;font-size:.95rem;color:#C7DDCE}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  #bulb{transition:none}
+}
+@media print{
+  .bar,.sim-ctl,.copy{display:none}
+  body{background:#fff;font-size:11pt}
+  section{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<nav class="bar" aria-label="목차">
+  <div class="bar-in">
+    <a href="#intro">피코란</a>
+    <a href="#ready">준비물</a>
+    <a href="#thonny">토니 설치</a>
+    <a href="#firmware">펌웨어</a>
+    <a href="#first">첫 코드</a>
+    <a href="#blink">LED 깜빡이기</a>
+    <a href="#mine">나만의 패턴</a>
+    <a href="#grove">그로브 쉴드</a>
+    <a href="#trouble">막힐 때</a>
+    <a href="#check">점검</a>
+  </div>
+</nav>
+
+<main>
+
+<header class="hero wrap">
+  <div class="kicker">인공지능과 피지컬 컴퓨팅 · 1차시</div>
+  <h1><span class="en">Hello, Pico!</span><br>손바닥 위의 컴퓨터를<br>깨우는 첫 시간</h1>
+  <p class="lede">스마트워치, 무선 이어폰, 로봇 청소기, 전기밥솥 안에는 모두 작은 컴퓨터가 들어 있습니다. 오늘은 그 작은 컴퓨터에게 처음으로 명령을 내려 봅니다.</p>
+
+  <div class="sim">
+    <div class="sim-stage">
+      <svg viewBox="0 0 120 200" role="img" aria-label="피코 보드에서 내장 LED가 깜빡이는 모습">
+        <defs>
+          <filter id="glow" x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur stdDeviation="3.2" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <rect x="8" y="4" width="104" height="192" rx="8" fill="#0E5C3F"/>
+        <rect x="8" y="4" width="104" height="192" rx="8" fill="none" stroke="#083A28"/>
+        <!-- USB -->
+        <rect x="44" y="0" width="32" height="14" rx="2" fill="#B8BFC2"/>
+        <rect x="49" y="3" width="22" height="7" rx="1.5" fill="#6E7679"/>
+        <!-- pin pads -->
+        <g fill="#A9682B">
+          <!-- generated rows -->
+          <g id="pinsL"></g><g id="pinsR"></g>
+        </g>
+        <!-- RF can -->
+        <rect x="26" y="130" width="68" height="40" rx="3" fill="#C8CDD0"/>
+        <rect x="26" y="130" width="68" height="40" rx="3" fill="none" stroke="#9AA1A5"/>
+        <!-- chip -->
+        <rect x="41" y="78" width="38" height="38" rx="2" fill="#1A1A1A"/>
+        <circle cx="47" cy="84" r="2" fill="#3A3A3A"/>
+        <text x="60" y="101" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7" fill="#8C8C8C">RP2350</text>
+        <!-- BOOTSEL -->
+        <rect x="86" y="46" width="16" height="14" rx="2" fill="#F2F2F0"/>
+        <text x="94" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="5" fill="#BFD6C6">BOOTSEL</text>
+        <!-- LED -->
+        <rect x="22" y="46" width="12" height="9" rx="1.5" fill="#3E5B4C"/>
+        <rect id="bulb" x="23" y="47" width="10" height="7" rx="1" fill="#7CE05A" filter="url(#glow)" opacity="0"/>
+        <text x="28" y="66" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="5" fill="#BFD6C6">LED</text>
+        <text x="60" y="188" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#BFD6C6">Pico 2 W</text>
+      </svg>
+    </div>
+    <div class="sim-ctl">
+      <div class="btns" role="group" aria-label="깜빡임 패턴 선택">
+        <button class="p" data-pat="run" aria-pressed="true">▶ 실행</button>
+        <button class="p" data-pat="stop" aria-pressed="false">■ 정지</button>
+        <button class="p" data-pat="sos" aria-pressed="false">SOS 신호</button>
+      </div>
+      <div class="slider-row">
+        <label for="sp" style="font-size:.8rem;color:var(--ink-soft)">쉬는 시간</label>
+        <input id="sp" type="range" min="0.05" max="2" step="0.05" value="0.5">
+        <span class="readout" id="ro">time.sleep(0.5)</span>
+      </div>
+      <p class="sim-note">막대를 움직이면 숫자가 바뀝니다. 오늘 우리가 코드로 만들 것이 바로 이 동작이에요.</p>
+    </div>
+  </div>
+</header>
+
+<section id="intro" class="wrap">
+  <h2>피코는 어떤 컴퓨터일까</h2>
+  <div class="h2sub">1. 돌아보기</div>
+
+  <p>컴퓨터라고 하면 보통 모니터와 키보드가 달린 기계를 떠올립니다. 하지만 우리 주변 곳곳에는 '작은 컴퓨터'가 숨어 있어요. 엘리베이터 버튼을 누르면 층수를 기억하고, 자동문은 사람을 감지해 문을 엽니다. 이렇게 한 가지 용도로 쓰이는 작은 컴퓨터를 <strong>마이크로컨트롤러</strong>라고 부릅니다.</p>
+
+  <p>마이크로컨트롤러는 센서로 주변을 감지하고<strong>(입력)</strong>, 정해진 규칙에 따라 판단하고<strong>(처리)</strong>, 불을 켜거나 모터를 돌립니다<strong>(출력)</strong>. 이 세 글자가 앞으로 우리가 만들 모든 장치의 뼈대입니다.</p>
+
+  <h3>라즈베리파이 5 vs 라즈베리파이 피코 2 W</h3>
+  <p>이름은 비슷하지만 역할이 다릅니다. 라즈베리파이는 운영체제를 올려 쓰는 작은 PC이고, 피코는 운영체제 없이 우리가 넣어 준 코드만 실행하는 칩 하나짜리 컴퓨터입니다.</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>구분</th><th>라즈베리파이 5</th><th>피코 2 W</th></tr></thead>
+    <tbody>
+      <tr><th>종류</th><td>싱글보드 컴퓨터</td><td>마이크로컨트롤러 보드</td></tr>
+      <tr><th>운영체제</th><td>리눅스 설치해 사용</td><td>없음. 전원을 켜면 코드가 바로 실행</td></tr>
+      <tr><th>화면·키보드</th><td>연결해 PC처럼 사용</td><td>없음</td></tr>
+      <tr><th>잘하는 일</th><td>여러 프로그램 동시 실행</td><td>한 가지 일을 24시간 꾸준히</td></tr>
+      <tr><th>전원</th><td>전용 어댑터 필요</td><td>USB나 건전지로 가능</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note tip">
+    <div class="note-t">왜 피코일까?</div>
+    <p>교실을 지키는 장치에게 필요한 건 '큰 힘'이 아니라 '꾸준함'입니다. 피코는 부팅 없이 전원을 켜자마자 일을 시작하고, 전기를 아주 조금 먹어 건전지로도 오래 버팁니다. 가격도 라즈베리파이 5의 10분의 1 수준이에요.</p>
+  </div>
+
+  <h3>아두이노 우노 vs 피코 2 W</h3>
+  <div class="tw">
+  <table>
+    <thead><tr><th>구분</th><th>아두이노 우노</th><th>피코 2 W</th></tr></thead>
+    <tbody>
+      <tr><th>언어</th><td>C/C++ 기반</td><td>파이썬(마이크로파이썬)</td></tr>
+      <tr><th>와이파이·블루투스</th><td>없음</td><td>보드에 기본 내장</td></tr>
+      <tr><th>CPU 비트</th><td>8비트</td><td>32비트</td></tr>
+      <tr><th>처리 능력</th><td>16MHz, 1코어</td><td>150MHz, 2코어</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>이 수업에서는 파이썬으로 센서를 다루고, 무선 연결과 인공지능 프로젝트까지 확장하기 위해 피코를 골랐습니다.</p>
+
+  <div class="note">
+    <div class="note-t">더 알아보기 — 피코의 뇌, RP2350 칩</div>
+    <p>보드 한가운데 네모난 검은 칩이 <strong>RP2350</strong>입니다. 피코가 '보드' 이름이라면 RP2350은 그 위에 올라간 '두뇌 칩'의 이름이에요. 사람으로 치면 피코가 몸, RP2350이 뇌인 셈입니다.</p>
+    <p>이 손톱만 한 칩 안에 계산 장치 두 개(150MHz 듀얼 코어)와 메모리(SRAM 520KB), 앞으로 쓸 ADC와 핀 제어 장치가 모두 들어 있습니다. 와이파이·블루투스는 그 옆 은색 덮개 안의 무선 칩이 따로 맡습니다.</p>
+  </div>
+</section>
+
+<section id="ready" class="wrap">
+  <h2>오늘의 흐름과 준비물</h2>
+  <div class="h2sub">2. 미리보기</div>
+
+  <p>오늘은 다섯 단계를 지납니다. <strong>연결 → 토니 실행 → 코드 작성 → 저장 → 실행(▶)</strong>. 이 흐름은 앞으로 모든 시간에 똑같이 반복되니, 오늘 확실히 익혀 둡시다.</p>
+
+  <ol>
+    <li>토니(Thonny)를 설치한다</li>
+    <li>피코에 마이크로파이썬을 설치하고 연결한다</li>
+    <li>셸에서 첫 명령을 내려 본다</li>
+    <li>내장 LED를 깜빡인다</li>
+    <li>나만의 깜빡임 패턴을 만든다</li>
+  </ol>
+
+  <h3>책상 위에 꺼내 둘 것</h3>
+  <div class="tw">
+  <table>
+    <thead><tr><th>부품</th><th>확인할 점</th></tr></thead>
+    <tbody>
+      <tr><th>피코 2 W</th><td>핀헤더(다리)가 납땜되어 있는지</td></tr>
+      <tr><th>그로브 쉴드</th><td>오늘은 마지막에 끼워만 봅니다</td></tr>
+      <tr><th>USB 케이블</th><td><strong>데이터 전송용</strong>인지. 충전 전용이면 인식되지 않습니다</td></tr>
+      <tr><th>노트북</th><td>설치 권한이 없어도 괜찮습니다</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <div class="note-t">W와 H는 무슨 뜻일까</div>
+    <p><strong>W</strong>는 Wireless, 즉 와이파이·블루투스가 들어 있다는 표시입니다. 우리 수업의 뒷부분 프로젝트가 전부 이 기능을 쓰기 때문에 반드시 W가 붙은 모델이어야 합니다.</p>
+    <p><strong>H</strong>는 Header, 보드에 꽂는 가느다란 다리가 미리 납땜되어 있다는 뜻입니다. 그로브 쉴드에 바로 끼우려면 필요하죠. 1세대에서는 'WH'라고 줄여 불렀지만, 피코 2부터는 구매 페이지에서 'with headers' 표기를 확인하세요.</p>
+  </div>
+</section>
+
+<section id="thonny" class="wrap">
+  <h2>활동 1. 토니 설치하고 실행하기</h2>
+  <div class="h2sub">목표 — 컴퓨터에 토니를 설치하고 화면 구조를 파악한다</div>
+
+  <p>피코는 마이크로컨트롤러를 위한 파이썬인 <strong>마이크로파이썬(MicroPython)</strong>으로 프로그래밍합니다. <strong>토니(Thonny)</strong>는 그 코드를 쓰고 실행 결과를 보는 프로그램이에요.</p>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">내려받기</div>
+      <p><a href="https://thonny.org/" target="_blank" rel="noopener">thonny.org</a>에 접속해 내 컴퓨터 운영체제(윈도우/맥)에 맞는 설치 파일을 내려받습니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">설치하기</div>
+      <p>내려받은 파일을 실행하고 [Next] → [Install] → [Finish] 순으로 진행합니다. 바꿀 내용은 없습니다.</p>
+      <p>학교 컴퓨터에서 관리자 권한을 묻는다면 <strong>"Install for me only"</strong>(나만 사용)를 고르세요. 권한 없이도 설치됩니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">화면 확인하기</div>
+      <p>토니를 실행하면 화면이 위아래 둘로 나뉘어 있습니다. 위쪽은 코드를 쓰는 <strong>편집 영역</strong>, 아래쪽은 결과와 오류 메시지가 나타나는 <strong>셸(Shell)</strong>입니다.</p>
+    </div>
+  </div>
+
+  <figure class="shot">
+    <img src="images/thonny-start.png" alt="토니 실행 화면. 위쪽은 코드를 쓰는 편집 영역, 아래쪽은 결과가 나오는 셸">
+    <figcaption>토니 실행 직후 화면. 위가 편집 영역, 아래가 셸입니다</figcaption>
+  </figure>
+</section>
+
+<section id="firmware" class="wrap">
+  <h2>활동 2. 피코에 마이크로파이썬 설치하기</h2>
+  <div class="h2sub">목표 — 피코를 연결하고 펌웨어를 설치한다 · 평생 딱 한 번</div>
+
+  <p>피코는 공장에서 나올 때 마이크로파이썬이 들어 있지 않습니다. 처음 한 번만 설치하면 됩니다.</p>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">BOOTSEL을 누른 채로 꽂기</div>
+      <p>보드의 흰색 <strong>BOOTSEL</strong> 버튼을 <strong>먼저 누른 상태에서</strong> USB 케이블을 컴퓨터에 꽂습니다. 컴퓨터에 <code class="inl">RP2350</code>이라는 드라이브가 나타나면 버튼에서 손을 뗍니다.</p>
+      <p>USB 메모리를 꽂은 것처럼 보이면 성공이에요.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">인터프리터 설정</div>
+      <p>토니 <strong>오른쪽 아래 모서리</strong>의 인터프리터 선택 버튼을 클릭하고 <strong>[Install MicroPython…]</strong>을 누릅니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">펌웨어 설치</div>
+      <p>설치 창에서 Target volume이 <code class="inl">RP2350</code>으로 잡혔는지 확인하고, variant를 <strong>Raspberry Pi · Pico 2 W</strong>로 선택한 뒤 [Install]을 누릅니다. 10~30초 기다립니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">4</div>
+    <div class="step-b">
+      <div class="step-t">설치 확인</div>
+      <p>오른쪽 아래에서 <strong>MicroPython (Raspberry Pi Pico)</strong>를 선택합니다. 셸에 이런 글자가 뜨면 성공입니다.</p>
+      <div class="code"><pre>MicroPython v1.28.0 on 2026-04-06; Raspberry Pi Pico 2 W with RP2350
+Type <span class="st">"help()"</span> for more information.
+&gt;&gt;&gt;</pre></div>
+    </div>
+  </div>
+
+  <div class="note tip">
+    <div class="note-t">설치는 딱 한 번이면 됩니다</div>
+    <p>한 번 설치해 두면 다음 시간부터는 케이블만 꽂고 바로 코딩할 수 있어요. 그리고 <strong>BOOTSEL은 펌웨어를 설치할 때만</strong> 씁니다. 평소에는 그냥 꽂으세요.</p>
+    <p>드라이브가 나타나지 않는다면 버튼을 누르는 타이밍을 확인하세요. 버튼을 <strong>먼저</strong> 누르고, 그 상태에서 USB를 연결해야 합니다.</p>
+  </div>
+</section>
+
+<section id="first" class="wrap">
+  <h2>첫 명령 내리기</h2>
+  <div class="h2sub">3.3 첫 코드 실행하기</div>
+
+  <p>셸의 <code class="inl">&gt;&gt;&gt;</code> 옆에 아래 한 줄을 직접 타이핑하고 엔터를 누르세요.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">print</span>(<span class="st">"안녕, 피코!"</span>)</pre></div>
+
+  <p>화면에 <strong>안녕, 피코!</strong>가 나타납니다. 이 글자를 출력한 것은 여러분의 컴퓨터가 아니라 <strong>피코</strong>입니다. 셸에 적은 명령이 USB를 타고 피코로 건너가 실행되고, 그 결과가 다시 화면으로 돌아온 것이죠.</p>
+
+  <p>이름을 넣어 한 번 더 해 보세요. 지금 이 순간, 손바닥만 한 컴퓨터가 여러분의 말을 듣고 있습니다.</p>
+</section>
+
+<section id="blink" class="wrap">
+  <h2>내장 LED 깜빡이기</h2>
+  <div class="h2sub">3.4 · 외부 부품 없이 바로 해 볼 수 있어요</div>
+
+  <p>피코 보드 위에는 작은 LED가 하나 붙어 있습니다. 이번에는 셸이 아니라 <strong>편집 영역</strong>에 코드를 적고, <code class="inl">main.py</code>로 피코에 저장한 뒤 초록색 실행 버튼(▶)을 누릅니다.</p>
+
+  <h3>코드 1. LED 켜기</h3>
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">from</span> machine <span class="kw">import</span> Pin   <span class="cm"># Pin 기능 가져오기</span>
+
+led = Pin(<span class="st">"LED"</span>, Pin.OUT)   <span class="cm"># 내장 LED 준비</span>
+led.value(<span class="nu">1</span>)               <span class="cm"># 1 = 켜기, 0 = 끄기</span></pre></div>
+
+  <p><code class="inl">machine</code>은 핀, ADC, PWM처럼 하드웨어를 제어하는 라이브러리입니다. 마이크로파이썬에 기본으로 들어 있어 따로 설치할 필요가 없어요. <code class="inl">Pin("LED", Pin.OUT)</code>은 '내장 LED를 출력용으로 쓰겠다'는 뜻입니다.</p>
+
+  <p>이제 <code class="inl">value(1)</code>을 <code class="inl">value(0)</code>으로 바꿔 다시 실행해 보세요. 꺼집니다. 코드로 하드웨어를 제어한 첫 순간입니다.</p>
+
+  <div class="note tip">
+    <div class="note-t">왜 main.py로 저장할까?</div>
+    <p>셸에 적은 명령은 한 번 실행되고 사라집니다. 코드를 남기려면 편집 영역에 적고 저장해야 하죠. 저장할 때 '이 컴퓨터'가 아니라 <strong>'Raspberry Pi Pico'</strong>를 선택하면 코드가 피코 안으로 들어갑니다.</p>
+    <p>이때 파일 이름을 <code class="inl">main.py</code>로 지으면 특별한 일이 생겨요. 컴퓨터 없이 <strong>전원만 꽂아도 피코가 이 파일을 스스로 실행</strong>합니다. 건전지만 연결해도 동작하는 진짜 장치가 되는 거예요.</p>
+  </div>
+
+  <h3>코드 2. LED 깜빡이기</h3>
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">from</span> machine <span class="kw">import</span> Pin
+<span class="kw">import</span> time
+
+led = Pin(<span class="st">"LED"</span>, Pin.OUT)
+
+<span class="kw">while</span> <span class="kw">True</span>:
+    led.value(<span class="nu">1</span>)
+    time.sleep(<span class="nu">0.5</span>)      <span class="cm"># 0.5초 기다리기</span>
+    led.value(<span class="nu">0</span>)
+    time.sleep(<span class="nu">0.5</span>)</pre></div>
+
+  <p><code class="inl">while True:</code>는 '멈추라고 할 때까지 계속 반복'이라는 뜻입니다. 켜고, 0.5초 쉬고, 끄고, 0.5초 쉬고를 반복하니 LED가 1초에 한 번 깜빡입니다. 멈추려면 토니의 빨간 정지(STOP) 버튼을 누르세요.</p>
+
+  <p><code class="inl">time.sleep(0.5)</code>이 없으면 어떻게 될까요? 너무 빨리 깜빡여서 사람 눈에는 그냥 켜져 있는 것처럼 보입니다. 지워 보고 직접 확인해 보세요.</p>
+
+  <div class="note">
+    <div class="note-t">들여쓰기를 빠뜨리면 에러</div>
+    <p><code class="inl">while True:</code> 아래 줄들은 반드시 스페이스 4칸만큼 들여 써야 합니다. 파이썬은 들여쓰기로 '어디까지가 반복할 부분인지'를 판단하기 때문이에요.</p>
+  </div>
+</section>
+
+<section id="mine" class="wrap">
+  <h2>활동 3. 나만의 깜빡임 만들기</h2>
+  <div class="h2sub">목표 — 기다리는 시간과 순서를 바꿔 패턴을 설계한다</div>
+
+  <p>맨 위 시뮬레이터로 미리 실험해 보고, 마음에 드는 패턴을 코드로 옮겨 보세요.</p>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">속도 바꾸기</div>
+      <p><code class="inl">time.sleep</code>의 숫자를 0.1로 줄이면 얼마나 빨라질까요? 2로 늘리면요? 눈으로 깜빡임을 셀 수 있는 가장 빠른 숫자는 몇일까요?</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">리듬 만들기</div>
+      <p>'짧게 세 번, 길게 한 번'처럼 리듬이 있는 깜빡임을 만들어 봅니다. 같은 줄을 여러 번 복사해도 되고, <code class="inl">for</code>를 써도 됩니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">SOS 신호 보내기</div>
+      <p>모스 부호의 SOS는 짧게 3번, 길게 3번, 짧게 3번입니다. 시뮬레이터의 [SOS 신호] 버튼을 눌러 리듬을 확인한 뒤, 코드로 만들어 보세요. 힌트는 아래 코드에 있습니다.</p>
+    </div>
+  </div>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">from</span> machine <span class="kw">import</span> Pin
+<span class="kw">import</span> time
+
+led = Pin(<span class="st">"LED"</span>, Pin.OUT)
+
+<span class="kw">def</span> blink(on_time, times):
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(times):
+        led.value(<span class="nu">1</span>)
+        time.sleep(on_time)
+        led.value(<span class="nu">0</span>)
+        time.sleep(<span class="nu">0.2</span>)
+
+<span class="kw">while</span> <span class="kw">True</span>:
+    blink(<span class="nu">0.2</span>, <span class="nu">3</span>)   <span class="cm"># S : 짧게 3번</span>
+    blink(<span class="nu">0.6</span>, <span class="nu">3</span>)   <span class="cm"># O : 길게 3번</span>
+    <span class="cm"># 여기에 S를 한 번 더 넣어 완성하세요</span>
+    time.sleep(<span class="nu">1</span>)</pre></div>
+
+  <div class="note">
+    <div class="note-t">한 걸음 더</div>
+    <p>친구 이름의 첫 글자를 모스 부호로 바꿔 깜빡여 보세요. 옆 사람이 알아맞힐 수 있을까요? 알아맞히려면 짧은 신호와 긴 신호의 길이 차이가 얼마나 나야 할지 함께 정해 보세요.</p>
+  </div>
+</section>
+
+<section id="grove" class="wrap">
+  <h2>그로브 쉴드 끼워 보기</h2>
+  <div class="h2sub">3.5 · 다음 시간을 위한 준비</div>
+
+  <p><strong>그로브 쉴드</strong>는 피코의 가느다란 핀들을 흰색 커넥터로 바꿔 주는 확장 보드입니다. 복잡한 배선 대신 케이블을 딸깍 꽂기만 하면 전원(VCC)과 접지(GND), 신호선이 한 번에 연결됩니다.</p>
+
+  <p>피코의 핀과 쉴드의 구멍을 맞춰 수직으로 끼웁니다. <strong>방향이 있으니 USB 단자 위치를 확인하며</strong> 천천히 끼우세요.</p>
+
+  <div class="fig">피코 2 W를 그로브 쉴드에 끼우는 방향 <span style="opacity:.7">(사진 삽입 예정)</span></div>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>포트 종류</th><th>이름 예시</th><th>무엇을 꽂을까</th></tr></thead>
+    <tbody>
+      <tr><th>디지털</th><td>D16, D18, D20</td><td>버튼·LED처럼 켜짐/꺼짐(0과 1) 한 가지 신호를 주고받는 부품</td></tr>
+      <tr><th>아날로그</th><td>A0, A1, A2</td><td>밝기·수분처럼 연속적으로 변하는 값 하나를 재는 센서</td></tr>
+      <tr><th>I2C</th><td>I2C0, I2C1</td><td>가속도 센서·카메라처럼 여러 값을 한 번에 주고받는 부품</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>포트 이름(A0, D16)은 '어디에 꽂는가'이고, 코드에서 부를 때는 그 옆에 적힌 <strong>GP 번호</strong>를 씁니다. D16 포트에 꽂은 LED는 코드에서 <code class="inl">Pin(16)</code>으로, A0 포트에 꽂은 센서는 <code class="inl">ADC(Pin(26))</code>으로 부릅니다.</p>
+
+  <div class="note">
+    <div class="note-t">신호에는 두 종류가 있어요</div>
+    <p><strong>디지털 신호</strong>는 켜짐/꺼짐, 0과 1 딱 두 가지뿐입니다. <strong>아날로그 신호</strong>는 연속적으로 변하는 양이에요. 밝기, 온도, 습도처럼 세상 대부분의 양은 아날로그입니다. 다음 시간에 두 가지를 모두 직접 다뤄 봅니다.</p>
+  </div>
+</section>
+
+<section id="trouble" class="wrap">
+  <h2>막힐 때 보는 곳</h2>
+  <div class="h2sub">손을 들기 전에 여기부터 확인</div>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>이런 상황이면</th><th>이렇게 해 보세요</th></tr></thead>
+    <tbody>
+      <tr><th>RP2350 드라이브가 안 뜬다</th><td>BOOTSEL을 <strong>먼저</strong> 누르고 그 상태로 USB를 꽂았는지 확인. 그래도 안 되면 <strong>데이터 전송용 케이블</strong>인지 확인</td></tr>
+      <tr><th>셸에 &gt;&gt;&gt;가 없다</th><td>오른쪽 아래 인터프리터가 MicroPython (Raspberry Pi Pico)로 되어 있는지 확인. 빨간 정지 버튼을 한 번 누르면 돌아오기도 합니다</td></tr>
+      <tr><th>IndentationError</th><td>들여쓰기 문제. <code class="inl">while</code>이나 <code class="inl">for</code> 아래 줄이 스페이스 4칸 들어가 있는지 확인</td></tr>
+      <tr><th>SyntaxError</th><td>괄호나 따옴표 짝이 안 맞거나, 콜론(<code class="inl">:</code>)을 빠뜨린 경우가 대부분</td></tr>
+      <tr><th>LED가 켜진 채 안 깜빡인다</th><td><code class="inl">time.sleep()</code>이 빠졌을 가능성이 높습니다</td></tr>
+      <tr><th>코드를 고쳐도 예전 게 실행된다</th><td>저장을 안 했거나, 피코가 아니라 컴퓨터에 저장했을 수 있어요. 저장 위치를 다시 확인</td></tr>
+      <tr><th>멈추질 않는다</th><td>토니의 빨간 정지(STOP) 버튼</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note tip">
+    <div class="note-t">에러는 실패가 아니라 메시지입니다</div>
+    <p>빨간 글씨가 나오면 마지막 줄부터 읽어 보세요. 에러 이름과 몇 번째 줄인지가 적혀 있습니다. 이 수업에서 여러분은 에러를 아주 많이 만나게 될 텐데, 그때마다 조금씩 더 잘 읽게 될 거예요.</p>
+  </div>
+</section>
+
+<section id="check" class="wrap">
+  <h2>점검하기</h2>
+  <div class="h2sub">5. 해석하기</div>
+
+  <details>
+    <summary>피코와 라즈베리파이 5의 가장 큰 차이는 무엇인가요?</summary>
+    <div class="ans">라즈베리파이 5는 운영체제를 설치해 여러 프로그램을 돌리는 작은 PC이고, 피코는 운영체제 없이 우리가 넣은 코드 하나만 바로 실행하는 마이크로컨트롤러입니다.</div>
+  </details>
+
+  <details>
+    <summary><code class="inl">led.value(1)</code>과 <code class="inl">led.value(0)</code>의 차이는?</summary>
+    <div class="ans">1은 전기를 흘려 LED를 켜고, 0은 전기를 끊어 끕니다. 디지털 출력에는 이 두 가지 상태밖에 없습니다.</div>
+  </details>
+
+  <details>
+    <summary>코드를 <code class="inl">main.py</code>라는 이름으로 피코에 저장하면 무엇이 달라지나요?</summary>
+    <div class="ans">컴퓨터에 연결하지 않고 전원만 넣어도 피코가 그 파일을 스스로 실행합니다. 건전지만 연결해도 동작하는 독립된 장치가 됩니다.</div>
+  </details>
+
+  <details>
+    <summary>BOOTSEL 버튼은 언제 쓰나요?</summary>
+    <div class="ans">마이크로파이썬 펌웨어를 설치할 때만 씁니다. 평소 코딩할 때는 그냥 USB를 꽂으면 됩니다.</div>
+  </details>
+
+  <details>
+    <summary>LED를 2초에 한 번 깜빡이게 하려면 코드를 어떻게 바꿀까요?</summary>
+    <div class="ans"><code class="inl">time.sleep(0.5)</code> 두 곳을 모두 <code class="inl">time.sleep(1)</code>로 바꿉니다. 켜진 시간 1초 + 꺼진 시간 1초 = 한 주기 2초입니다.</div>
+  </details>
+
+  <h3>오늘 한 일</h3>
+  <ul class="check" id="cl">
+    <li><input type="checkbox" id="c1"><label for="c1">토니를 설치하고 실행했다</label></li>
+    <li><input type="checkbox" id="c2"><label for="c2">피코에 마이크로파이썬을 설치하고 <code class="inl">&gt;&gt;&gt;</code>를 확인했다</label></li>
+    <li><input type="checkbox" id="c3"><label for="c3">셸에서 <code class="inl">print()</code>로 첫 명령을 내렸다</label></li>
+    <li><input type="checkbox" id="c4"><label for="c4">내장 LED를 켜고 껐다</label></li>
+    <li><input type="checkbox" id="c5"><label for="c5"><code class="inl">main.py</code>로 저장해 LED를 깜빡였다</label></li>
+    <li><input type="checkbox" id="c6"><label for="c6">나만의 패턴이나 SOS 신호를 만들었다</label></li>
+    <li><input type="checkbox" id="c7"><label for="c7">그로브 쉴드를 방향에 맞게 끼워 봤다</label></li>
+  </ul>
+</section>
+
+<section class="wrap" style="border:none;padding-top:0">
+  <div class="next">
+    <h2>다음 시간 예고</h2>
+    <p>오늘은 피코가 신호를 <strong>내보내는 것</strong>(출력)만 해 봤습니다. 다음 시간에는 그로브 쉴드에 LED 모듈과 버튼을 연결해, 피코가 신호를 <strong>받아들이는 것</strong>(입력)까지 다룹니다.</p>
+    <p>그 다음에는 피코 2 W의 진짜 장점인 와이파이를 씁니다. 피코를 교실 와이파이에 연결하고 신호 세기를 재서, 스마트폰으로 보는 웹 대시보드를 만들 거예요. 우리 교실에서 와이파이가 가장 약한 자리는 어디일까요?</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p>인공지능과 피지컬 컴퓨팅 · Chapter 1 Hello, Pico!</p>
+  <p style="margin-top:.3rem">라즈베리파이 피코 2 W + 그로브 쉴드 + 마이크로파이썬</p>
+</footer>
+
+<script>
+(function(){
+  // ── 핀 패드 그리기 ─────────────────────────
+  var L=document.getElementById('pinsL'), R=document.getElementById('pinsR');
+  if(L&&R){
+    var s='';
+    for(var i=0;i<20;i++){
+      var y=14+i*9;
+      s+='<circle cx="13" cy="'+y+'" r="2.6"/>';
+    }
+    L.innerHTML=s;
+    s='';
+    for(var j=0;j<20;j++){
+      var y2=14+j*9;
+      s+='<circle cx="107" cy="'+y2+'" r="2.6"/>';
+    }
+    R.innerHTML=s;
+  }
+
+  // ── LED 시뮬레이터 ────────────────────────
+  var bulb=document.getElementById('bulb'),
+      slider=document.getElementById('sp'),
+      readout=document.getElementById('ro'),
+      btns=document.querySelectorAll('button.p[data-pat]'),
+      timer=null, seq=[], idx=0;
+
+  function setBulb(on){ bulb.setAttribute('opacity', on?'1':'0'); }
+
+  function stop(){ if(timer){clearTimeout(timer);timer=null;} setBulb(false); }
+
+  function play(sequence){
+    stop(); seq=sequence; idx=0; step();
+  }
+  function step(){
+    var f=seq[idx%seq.length];
+    setBulb(f.on);
+    timer=setTimeout(function(){ idx++; step(); }, f.d);
+  }
+
+  function basic(){
+    var v=parseFloat(slider.value);
+    return [{on:true,d:v*1000},{on:false,d:v*1000}];
+  }
+  function sosSeq(){
+    var a=[],k;
+    for(k=0;k<3;k++){a.push({on:true,d:200},{on:false,d:200});}
+    for(k=0;k<3;k++){a.push({on:true,d:600},{on:false,d:200});}
+    for(k=0;k<3;k++){a.push({on:true,d:200},{on:false,d:200});}
+    a.push({on:false,d:1200});
+    return a;
+  }
+
+  function press(name){
+    btns.forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.pat===name ? 'true':'false'); });
+  }
+
+  btns.forEach(function(b){
+    b.addEventListener('click',function(){
+      var p=b.dataset.pat;
+      press(p);
+      if(p==='stop'){ stop(); }
+      else if(p==='sos'){ play(sosSeq()); }
+      else { play(basic()); }
+    });
+  });
+
+  slider.addEventListener('input',function(){
+    var v=parseFloat(slider.value).toFixed(2).replace(/0$/,'').replace(/\.$/,'');
+    readout.textContent='time.sleep('+v+')';
+    press('run');
+    play(basic());
+  });
+
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ press('stop'); setBulb(true); } else { play(basic()); }
+
+  // ── 코드 복사 ─────────────────────────────
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var code=btn.parentNode.querySelector('pre').innerText;
+      var done=function(){ btn.textContent='복사됨'; setTimeout(function(){btn.textContent='복사';},1400); };
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(code).then(done, function(){ btn.textContent='실패'; });
+      } else {
+        var ta=document.createElement('textarea');
+        ta.value=code; document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); done(); }catch(e){ btn.textContent='실패'; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  // ── 체크리스트 (저장 가능하면 저장) ─────────
+  var boxes=document.querySelectorAll('#cl input[type=checkbox]');
+  var KEY='pico-ch1-check';
+  var saved={};
+  try{ saved=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ saved={}; }
+  boxes.forEach(function(b){
+    if(saved[b.id]) b.checked=true;
+    b.addEventListener('change',function(){
+      saved[b.id]=b.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+    });
+  });
+})();
+</script>
+</body>
+</html>
