@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2차시 · 피코 속에 숨은 온도계 — 인공지능과 피지컬 컴퓨팅</title>
+<meta name="description" content="센서를 사지 않고도 온도를 재는 법. 피코 내부 온도 센서와 ADC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0EA;
+  --paper-2:#F7F9F5;
+  --ink:#15211C;
+  --ink-soft:#4C5B54;
+  --board:#0E5C3F;
+  --board-dk:#083A28;
+  --copper:#A9682B;
+  --rule:#C6D0C6;
+  --max:37rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:4.5rem}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'IBM Plex Sans KR',system-ui,sans-serif;
+  font-weight:400;font-size:17px;line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 1.25rem}
+
+.bar{position:sticky;top:0;z-index:50;background:rgba(237,240,234,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.bar-in{max-width:var(--max);margin:0 auto;padding:.55rem 1.25rem;display:flex;gap:1rem;align-items:center;overflow-x:auto;scrollbar-width:none}
+.bar-in::-webkit-scrollbar{display:none}
+.bar a{color:var(--ink-soft);text-decoration:none;white-space:nowrap;font-size:.82rem;font-weight:500;padding:.2rem 0;border-bottom:2px solid transparent}
+.bar a:hover,.bar a:focus-visible{color:var(--board);border-bottom-color:var(--board)}
+
+.hero{padding:3.5rem 0 2.5rem}
+.kicker{font-size:.8rem;color:var(--copper);font-weight:600;letter-spacing:.02em}
+h1{font-size:clamp(2rem,6.6vw,2.9rem);line-height:1.14;font-weight:700;letter-spacing:-.03em;margin:.5rem 0 .9rem}
+.lede{font-size:1.06rem;color:var(--ink-soft);font-weight:300;max-width:32rem}
+
+/* converter */
+.sim{margin:2.25rem 0 0;background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.pipe{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:.4rem;padding:1.4rem 1rem 1rem;text-align:center}
+.cell .lab{font-size:.7rem;color:var(--ink-soft);margin-bottom:.2rem}
+.cell .num{font-family:'IBM Plex Mono',monospace;font-size:1.05rem;font-weight:600;color:var(--board);line-height:1.3}
+.cell .unit{font-size:.7rem;color:var(--ink-soft)}
+.arrow{color:var(--copper);font-size:.9rem}
+.sim-ctl{padding:.6rem 1.1rem 1.1rem;border-top:1px solid var(--rule)}
+.slider-row{display:flex;align-items:center;gap:.75rem}
+.slider-row label{font-size:.8rem;color:var(--ink-soft);white-space:nowrap}
+input[type=range]{flex:1;accent-color:var(--board);min-width:0}
+.sim-note{font-size:.78rem;color:var(--ink-soft);margin-top:.7rem}
+button.p{font-family:'IBM Plex Sans KR',sans-serif;font-size:.83rem;font-weight:500;background:transparent;color:var(--ink-soft);border:1px solid var(--rule);border-radius:2px;padding:.32rem .8rem;cursor:pointer}
+button.p:hover{border-color:var(--board);color:var(--board)}
+button.p:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+/* flow diagram */
+.flow{display:flex;align-items:stretch;gap:.5rem;margin:1.1rem 0;flex-wrap:wrap}
+.flow .fb{
+  flex:1 1 8rem;background:var(--paper-2);border:1px solid var(--rule);
+  border-radius:3px;padding:.7rem .6rem;text-align:center;font-size:.85rem;line-height:1.5;
+}
+.flow .fb b{display:block;font-weight:600}
+.flow .fb span{font-size:.75rem;color:var(--ink-soft)}
+.flow .fa{align-self:center;color:var(--copper);font-size:.85rem;flex:none}
+
+/* jitter box */
+.jitter{background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:1.1rem;margin:1.4rem 0}
+#jlist{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--ink-soft);margin-top:.8rem;line-height:1.9;word-break:break-all}
+#jsum{font-size:.88rem;margin-top:.6rem;color:var(--board);font-weight:500}
+
+section{padding:2.75rem 0;border-top:1px solid var(--rule)}
+h2{font-size:1.45rem;font-weight:700;letter-spacing:-.02em;line-height:1.3;margin-bottom:.35rem}
+.h2sub{font-size:.85rem;color:var(--copper);font-weight:500;margin-bottom:1.3rem}
+h3{font-size:1.05rem;font-weight:600;margin:1.9rem 0 .55rem;letter-spacing:-.01em}
+p{margin:.85rem 0}
+strong{font-weight:600}
+a{color:var(--board)}
+ul,ol{margin:.85rem 0 .85rem 1.15rem}
+li{margin:.3rem 0;padding-left:.2rem}
+
+.tw{overflow-x:auto;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:20rem}
+th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-weight:600;font-size:.8rem;color:var(--ink-soft);border-bottom:1.5px solid var(--ink)}
+tbody th{font-weight:500;color:var(--ink-soft);white-space:nowrap}
+
+.step{display:grid;grid-template-columns:1.9rem 1fr;gap:.1rem 1rem;margin:1.5rem 0}
+.step-n{font-family:'IBM Plex Mono',monospace;font-size:.9rem;font-weight:600;color:#fff;background:var(--board);width:1.7rem;height:1.7rem;border-radius:50%;display:grid;place-items:center;margin-top:.15rem}
+.step-b{grid-column:2}
+.step-t{font-weight:600;margin:.1rem 0 .25rem}
+.step p{margin:.35rem 0}
+
+.code{position:relative;margin:1.1rem 0;background:var(--board-dk);border-radius:3px}
+.code pre{overflow-x:auto;padding:1rem 1.1rem;font-family:'IBM Plex Mono','IBM Plex Sans KR',monospace;font-size:.85rem;line-height:1.65;color:#DCE8DF}
+.code .cm{color:#7FA88E}
+.code .kw{color:#8FD9A8;font-weight:600}
+.code .st{color:#E8C48A}
+.code .nu{color:#E8C48A}
+.copy{position:absolute;top:.45rem;right:.45rem;font-size:.7rem;font-family:'IBM Plex Mono',monospace;background:rgba(255,255,255,.08);color:#B9CFC0;border:none;border-radius:2px;padding:.25rem .5rem;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.18);color:#fff}
+code.inl{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:#DDE4DA;padding:.08em .35em;border-radius:2px}
+
+.note{border-left:3px solid var(--copper);background:var(--paper-2);padding:.9rem 1.1rem;margin:1.4rem 0;font-size:.93rem}
+.note-t{font-weight:600;margin-bottom:.25rem}
+.note.tip{border-left-color:var(--board)}
+.note p{margin:.4rem 0}
+.note p:first-of-type{margin-top:0}
+.note p:last-child{margin-bottom:0}
+
+details{border-bottom:1px solid var(--rule);padding:.85rem 0}
+details summary{cursor:pointer;font-weight:500;list-style:none;display:flex;gap:.6rem;align-items:baseline}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"?";font-family:'IBM Plex Mono',monospace;color:var(--copper);font-weight:600;flex:none}
+details[open] summary::before{content:"!";color:var(--board)}
+details .ans{padding:.5rem 0 0 1.2rem;color:var(--ink-soft);font-size:.93rem}
+
+.check{list-style:none;margin:1.1rem 0 0;padding:0}
+.check li{display:flex;gap:.65rem;align-items:flex-start;margin:.5rem 0;padding:0}
+.check input{margin-top:.42rem;accent-color:var(--board);width:1rem;height:1rem;flex:none}
+.check label{cursor:pointer}
+.check input:checked+label{color:var(--ink-soft);text-decoration:line-through}
+
+footer{border-top:1px solid var(--rule);padding:2.25rem 0 3.5rem;font-size:.85rem;color:var(--ink-soft)}
+.next{background:var(--board);color:#EAF3EC;border-radius:4px;padding:1.5rem 1.4rem;margin:1rem 0 0}
+.next h2{color:#fff;font-size:1.2rem;margin-bottom:.4rem}
+.next p{margin:.4rem 0;font-size:.95rem;color:#C7DDCE}
+
+@media (max-width:420px){
+  .pipe{grid-template-columns:1fr;gap:.15rem}
+  .arrow{transform:rotate(90deg);font-size:.8rem}
+}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+@media print{.bar,.sim-ctl,.copy{display:none}body{background:#fff;font-size:11pt}section{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<nav class="bar" aria-label="목차">
+  <div class="bar-in">
+    <a href="#review">복습</a>
+    <a href="#intro">숨은 센서</a>
+    <a href="#read">숫자 읽기</a>
+    <a href="#convert">온도로 바꾸기</a>
+    <a href="#change">온도 바꿔보기</a>
+    <a href="#jitter">흔들리는 값</a>
+    <a href="#compare">온도계와 비교</a>
+    <a href="#trouble">막힐 때</a>
+    <a href="#record">오늘의 기록</a>
+  </div>
+</nav>
+
+<main>
+
+<header class="hero wrap">
+  <div class="kicker">인공지능과 피지컬 컴퓨팅 · 2차시</div>
+  <h1>피코 속에 숨은 온도계</h1>
+  <p class="lede">아직 센서를 하나도 받지 않았습니다. 그런데 여러분의 피코는 지금 이 순간에도 자기 온도를 재고 있어요. 오늘은 그 숫자를 꺼내 봅니다.</p>
+
+  <div class="sim">
+    <div class="pipe">
+      <div class="cell">
+        <div class="lab">피코가 준 숫자</div>
+        <div class="num" id="c-raw">14000</div>
+        <div class="unit">read_u16()</div>
+      </div>
+      <div class="arrow">▶</div>
+      <div class="cell">
+        <div class="lab">전압으로</div>
+        <div class="num" id="c-volt">0.705</div>
+        <div class="unit">V</div>
+      </div>
+      <div class="arrow">▶</div>
+      <div class="cell">
+        <div class="lab">온도로</div>
+        <div class="num" id="c-temp">27.6</div>
+        <div class="unit">°C</div>
+      </div>
+    </div>
+    <div class="sim-ctl">
+      <div class="slider-row">
+        <label for="raw">숫자</label>
+        <input id="raw" type="range" min="13200" max="14800" step="1" value="14000">
+      </div>
+      <p class="sim-note">막대를 움직여 보세요. 숫자가 <strong>커지면</strong> 온도는 <strong>내려갑니다</strong>. 왜 그럴까요? 아래에서 답을 찾아봅시다.</p>
+    </div>
+  </div>
+</header>
+
+<section id="review" class="wrap">
+  <h2>지난 시간 복습</h2>
+  <div class="h2sub">0. 돌아보기 — 기억나지 않으면 <a href="index.html">1차시 자료</a>를 다시 열어보세요</div>
+
+  <h3>피지컬 컴퓨팅이란</h3>
+  <p><strong>코드로 실제 세상을 움직이는 것</strong>입니다. 화면 안에서 끝나는 게 아니라, 진짜 불이 켜지고 모터가 돌고 온도가 측정되는 거예요.</p>
+
+  <div class="flow">
+    <div class="fb"><b>코드 작성</b><span>소프트웨어</span></div>
+    <div class="fa">▶</div>
+    <div class="fb"><b>피코 보드</b><span>다리 역할</span></div>
+    <div class="fa">▶</div>
+    <div class="fb"><b>실제 세상</b><span>불·소리·측정</span></div>
+  </div>
+
+  <p>이미 우리 주변에 있습니다. 사람을 감지해 켜지는 스마트홈 전등, 흙이 마르면 물을 주는 자동 화분, 가까워지면 삑삑거리는 후방 감지 센서, CO₂가 높으면 알려주는 환기 알림까지요.</p>
+
+  <h3>라즈베리파이 피코란</h3>
+  <p>손톱 두 개 정도 크기의 <strong>아주 작은 컴퓨터</strong>입니다. 화면도 키보드도 없지만, LED를 켜고 온도를 재고 모터를 돌릴 수 있습니다.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th></th><th>일반 컴퓨터</th><th>피코</th></tr></thead>
+    <tbody>
+      <tr><th>크기</th><td>크다</td><td>손바닥보다 작다</td></tr>
+      <tr><th>가격</th><td>수십~수백만원</td><td>약 1만원</td></tr>
+      <tr><th>용도</th><td>문서, 게임, 인터넷</td><td>센서·모터 제어에 특화</td></tr>
+      <tr><th>언어</th><td>다양</td><td>마이크로파이썬</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>마이크로파이썬이란</h3>
+  <p>세계에서 가장 인기 있는 프로그래밍 언어인 <strong>파이썬(Python)</strong>을, 피코처럼 작은 장치에서도 쓸 수 있게 만든 <strong>축소판</strong>입니다. 문법은 파이썬과 거의 같아요.</p>
+
+  <h3>피코 2 WH의 각 부분</h3>
+  <p>사람 몸에 뇌와 입과 손발이 있듯이, 피코에도 역할이 나뉘어 있습니다.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>부품</th><th>몸에 비유하면</th><th>하는 일</th></tr></thead>
+    <tbody>
+      <tr><th>RP2350 칩</th><td>뇌</td><td>프로그램을 실행하고 판단합니다</td></tr>
+      <tr><th>USB 포트</th><td>입</td><td>컴퓨터와 대화하고 전원을 받습니다</td></tr>
+      <tr><th>GPIO 핀</th><td>손과 발</td><td>LED·센서 같은 바깥 장치와 연결합니다</td></tr>
+      <tr><th>내장 LED</th><td>표정</td><td>보드 상태를 눈으로 알려줍니다</td></tr>
+      <tr><th>BOOTSEL 버튼</th><td>리셋 스위치</td><td>펌웨어를 설치할 때만 누릅니다</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><strong>W</strong>는 Wireless, 즉 와이파이·블루투스가 들어 있다는 뜻입니다. <strong>H</strong>는 Header, 핀이 미리 납땜되어 있다는 뜻이고요. 덕분에 납땜 없이 바로 쓸 수 있습니다.</p>
+
+  <h3>토니(Thonny)란</h3>
+  <p>우리가 한국어를 쓰듯 피코는 파이썬을 씁니다. 토니는 우리가 쓴 코드를 피코에게 전달하고, 결과를 다시 가져다주는 <strong>통역사</strong>예요.</p>
+
+  <div class="flow">
+    <div class="fb"><b>나</b><span>코드 작성</span></div>
+    <div class="fa">▶</div>
+    <div class="fb"><b>토니</b><span>통역사</span></div>
+    <div class="fa">▶</div>
+    <div class="fb"><b>피코</b><span>실행</span></div>
+  </div>
+
+  <p>화면 위쪽이 코드를 쓰는 <strong>편집 영역</strong>, 아래쪽이 결과와 오류가 나타나는 <strong>셸</strong>입니다. 오늘도 이 두 곳을 계속 오갑니다.</p>
+
+  <div class="note tip">
+    <div class="note-t">시작 전 확인</div>
+    <p>USB를 꽂고, 오른쪽 아래가 <strong>MicroPython (Raspberry Pi Pico)</strong>인지 확인하세요. 셸에 <code class="inl">&gt;&gt;&gt;</code>가 보이면 준비 완료입니다. BOOTSEL은 누르지 않습니다.</p>
+  </div>
+</section>
+
+<section id="intro" class="wrap">
+  <h2>센서가 없는데 센서가 있다</h2>
+  <div class="h2sub">1. 돌아보기</div>
+
+  <p>지난 시간에 우리는 피코에게 명령을 <strong>내리기만</strong> 했습니다. 불을 켜라, 꺼라, 깜빡여라. 전부 출력이었죠.</p>
+
+  <p>오늘은 반대입니다. 피코에게 <strong>물어봅니다</strong>. "지금 몇 도야?"</p>
+
+  <p>피코의 두뇌인 RP2350 칩 안에는 아주 작은 온도 감지 회로가 들어 있습니다. 원래는 칩이 너무 뜨거워지지 않았는지 스스로 확인하려고 넣어둔 것인데, 우리도 그 값을 읽어올 수 있어요.</p>
+
+  <h3>ADC — 아날로그를 숫자로</h3>
+
+  <p>지난 시간에 디지털 신호는 0과 1 두 가지뿐이라고 했습니다. 그런데 온도는 27도와 28도 사이에 27.3도가 있고, 그 사이에도 무한히 많은 값이 있죠. 이렇게 <strong>연속적으로 변하는 양</strong>이 아날로그입니다.</p>
+
+  <p>컴퓨터는 숫자만 다룰 수 있으니, 아날로그를 숫자로 바꿔주는 장치가 필요합니다. 그게 <strong>ADC</strong>(Analog-Digital Converter, 아날로그-디지털 변환기)예요. 피코 안에 들어 있고, 앞으로 우리가 쓸 가스 센서·토양 수분 센서·조도 센서가 전부 이 ADC를 거쳐 갑니다.</p>
+
+  <div class="note">
+    <div class="note-t">센서는 온도를 재지 않습니다</div>
+    <p>이상하게 들리겠지만 사실입니다. 센서가 실제로 재는 것은 <strong>전압</strong>이에요. 온도가 오르면 전압이 내려가는 부품이 들어 있을 뿐이죠.</p>
+    <p>"이 전압은 몇 도에 해당한다"고 계산해서 붙여주는 건 우리입니다. 오늘 그 계산을 직접 해봅니다.</p>
+  </div>
+</section>
+
+<section id="read" class="wrap">
+  <h2>활동 1. 숫자 하나 읽기</h2>
+  <div class="h2sub">목표 — ADC가 주는 날것의 값을 확인한다</div>
+
+  <p>편집 영역에 아래 세 줄을 적고 실행해 보세요. 저장은 <code class="inl">temp.py</code>라는 이름으로 <strong>Raspberry Pi Pico</strong>에 합니다.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">from</span> machine <span class="kw">import</span> ADC
+
+sensor = ADC(<span class="nu">4</span>)          <span class="cm"># 4번 = 내부 온도 센서</span>
+<span class="kw">print</span>(sensor.read_u16())</pre></div>
+
+  <p>알 수 없는 다섯 자리 숫자가 나왔을 겁니다. 14000 근처겠네요.</p>
+
+  <p>이 숫자는 온도가 아닙니다. ADC가 전압을 <strong>0부터 65535까지의 눈금</strong>으로 표현한 값이에요. 0은 0V, 65535는 3.3V를 뜻합니다. <code class="inl">read_u16</code>의 16은 이 눈금이 16비트라는 뜻이고요.</p>
+
+  <p>여러 번 실행해 보세요. 매번 조금씩 다른 숫자가 나옵니다. 이건 나중에 다시 이야기합니다.</p>
+
+  <div class="note tip">
+    <div class="note-t">왜 하필 4번일까</div>
+    <p>피코의 ADC는 여러 개의 입구를 가지고 있습니다. 0·1·2번은 우리가 밖에서 센서를 꽂을 자리(A0·A1·A2)이고, <strong>4번은 칩 내부의 온도 센서에 미리 연결</strong>되어 있습니다. 그래서 아무것도 안 꽂아도 읽을 수 있는 거예요.</p>
+  </div>
+</section>
+
+<section id="convert" class="wrap">
+  <h2>숫자를 온도로 바꾸기</h2>
+  <div class="h2sub">3.2 · 두 번의 계산</div>
+
+  <h3>첫 번째 — 숫자를 전압으로</h3>
+
+  <p>65535가 3.3V니까, 우리가 받은 숫자가 몇 V인지는 비례로 구합니다.</p>
+
+  <div class="code"><pre>전압 = 숫자 × <span class="nu">3.3</span> ÷ <span class="nu">65535</span></pre></div>
+
+  <p>14000이면 약 0.705V가 나옵니다.</p>
+
+  <h3>두 번째 — 전압을 온도로</h3>
+
+  <p>피코 설명서에는 이 센서에 대해 딱 두 가지가 적혀 있습니다.</p>
+
+  <ul>
+    <li><strong>27도일 때 0.706V</strong>가 나온다</li>
+    <li>온도가 <strong>1도 오를 때마다 0.001721V씩 낮아진다</strong></li>
+  </ul>
+
+  <p>이 두 개만 알면 온도를 거꾸로 계산할 수 있습니다.</p>
+
+  <div class="code"><pre>온도 = <span class="nu">27</span> − (전압 − <span class="nu">0.706</span>) ÷ <span class="nu">0.001721</span></pre></div>
+
+  <p>맨 위 계산기에서 숫자가 커질수록 온도가 내려간 이유가 이겁니다. 온도가 오르면 전압이 <strong>내려가는</strong> 부품이거든요. 그래서 식에 뺄셈이 들어 있습니다.</p>
+
+  <h3>코드로 옮기기</h3>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">from</span> machine <span class="kw">import</span> ADC
+<span class="kw">import</span> time
+
+sensor = ADC(<span class="nu">4</span>)
+
+<span class="kw">while</span> <span class="kw">True</span>:
+    raw = sensor.read_u16()
+    volt = raw * <span class="nu">3.3</span> / <span class="nu">65535</span>
+    temp = <span class="nu">27</span> - (volt - <span class="nu">0.706</span>) / <span class="nu">0.001721</span>
+
+    <span class="kw">print</span>(raw, <span class="kw">round</span>(volt, <span class="nu">3</span>), <span class="kw">round</span>(temp, <span class="nu">1</span>))
+    time.sleep(<span class="nu">1</span>)</pre></div>
+
+  <p>1초에 한 줄씩, 세 개의 값이 나란히 찍힙니다. 왼쪽부터 날것의 숫자, 전압, 온도예요. 세 숫자가 어떻게 연결되는지 눈으로 확인해 보세요.</p>
+
+  <div class="note">
+    <div class="note-t">round는 반올림입니다</div>
+    <p><code class="inl">round(temp, 1)</code>은 소수점 아래 한 자리까지만 남기라는 뜻이에요. 안 쓰면 27.35819403159 같은 숫자가 나와서 읽기 힘듭니다.</p>
+  </div>
+</section>
+
+<section id="change" class="wrap">
+  <h2>활동 2. 온도를 바꿔보기</h2>
+  <div class="h2sub">목표 — 센서가 무엇에 반응하는지 직접 확인한다</div>
+
+  <p>코드를 계속 돌려둔 채로 아래를 해보고, 값이 <strong>얼마나</strong> 그리고 <strong>얼마나 빨리</strong> 변하는지 관찰하세요.</p>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">손으로 감싸기</div>
+      <p>피코를 손바닥으로 30초쯤 감싸 보세요. 몇 도까지 올라가나요? 손을 떼면 원래대로 돌아오는 데 얼마나 걸리나요?</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">입김 불기</div>
+      <p>후 하고 불어 보세요. 손보다 빠를까요, 느릴까요? 입김은 따뜻한데 값이 내려가는 경우도 있습니다. 왜 그럴지 생각해 보세요.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">추운 곳에 두기</div>
+      <p>창가나 냉장고 근처에 놓아 보세요. 노트북에서 케이블이 닿는 만큼만요. 몇 분 뒤 값이 어떻게 되나요?</p>
+    </div>
+  </div>
+
+  <div class="note tip">
+    <div class="note-t">관찰의 핵심은 '속도'입니다</div>
+    <p>센서마다 반응 속도가 다릅니다. 즉시 변하는 센서도 있고, 몇 분이 걸리는 센서도 있어요. 앞으로 받을 가스 센서는 아주 느립니다. 지금 이 감각을 익혀두면 그때 당황하지 않습니다.</p>
+  </div>
+</section>
+
+<section id="jitter" class="wrap">
+  <h2>활동 3. 값이 자꾸 흔들린다</h2>
+  <div class="h2sub">목표 — 측정값 하나를 믿으면 안 되는 이유를 안다</div>
+
+  <p>피코를 가만히 둬도 값이 계속 바뀝니다. 27.3, 26.8, 27.6, 27.1... 방 온도가 1초 만에 변한 게 아닌데도 그렇습니다.</p>
+
+  <p>이걸 <strong>노이즈</strong>라고 부릅니다. 전기 신호에는 아주 작은 떨림이 항상 섞여 있어요. 완전히 없앨 수는 없습니다.</p>
+
+  <div class="jitter">
+    <button class="p" id="jbtn">10번 재보기</button>
+    <div id="jlist">버튼을 눌러보세요.</div>
+    <div id="jsum"></div>
+  </div>
+
+  <h3>해결책 — 여러 번 재서 평균 내기</h3>
+
+  <p>한 번 잰 값은 못 믿어도, 열 번 재서 평균을 내면 훨씬 안정됩니다. 위 버튼을 여러 번 눌러 보세요. 개별 값은 매번 다르지만 평균은 비슷하게 나옵니다.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">from</span> machine <span class="kw">import</span> ADC
+<span class="kw">import</span> time
+
+sensor = ADC(<span class="nu">4</span>)
+
+<span class="kw">def</span> read_temp():
+    volt = sensor.read_u16() * <span class="nu">3.3</span> / <span class="nu">65535</span>
+    <span class="kw">return</span> <span class="nu">27</span> - (volt - <span class="nu">0.706</span>) / <span class="nu">0.001721</span>
+
+<span class="kw">while</span> <span class="kw">True</span>:
+    values = []
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(<span class="nu">10</span>):        <span class="cm"># 10번 재서</span>
+        values.append(read_temp())
+        time.sleep(<span class="nu">0.05</span>)
+
+    avg = <span class="kw">sum</span>(values) / <span class="kw">len</span>(values)   <span class="cm"># 평균 내기</span>
+    <span class="kw">print</span>(<span class="kw">round</span>(avg, <span class="nu">1</span>))
+    time.sleep(<span class="nu">1</span>)</pre></div>
+
+  <p><code class="inl">sum</code>은 다 더하기, <code class="inl">len</code>은 개수 세기입니다. 더한 값을 개수로 나누면 평균이죠.</p>
+
+  <p>실행해서 아까 코드와 비교해 보세요. 숫자가 훨씬 얌전해졌을 겁니다.</p>
+
+  <div class="note">
+    <div class="note-t">몇 번이 적당할까?</div>
+    <p>많이 잴수록 안정되지만 그만큼 느려집니다. 100번 재면 값 하나 얻는 데 5초가 걸리죠. 10을 20으로, 5로 바꿔가며 어디가 적당한지 직접 정해 보세요. <strong>정답은 없고 상황에 따라 다릅니다.</strong></p>
+  </div>
+</section>
+
+<section id="compare" class="wrap">
+  <h2>활동 4. 진짜 온도와 비교하기</h2>
+  <div class="h2sub">목표 — 센서가 재는 것과 내가 알고 싶은 것을 구분한다</div>
+
+  <p>집에 있는 온도계나 스마트폰 날씨 앱으로 방 온도를 확인하고, 피코 값과 비교해 보세요.</p>
+
+  <p>아마 <strong>피코 쪽이 몇 도 높게</strong> 나올 겁니다. 방이 22도인데 피코는 27도라고 하는 식으로요.</p>
+
+  <p>고장이 아닙니다. 이 센서는 <strong>칩 자체의 온도</strong>를 재고 있거든요. 칩은 일을 하면서 스스로 열을 냅니다. 사람으로 치면 체온을 재놓고 "오늘 날씨가 36.5도네"라고 말하는 셈이에요.</p>
+
+  <div class="note tip">
+    <div class="note-t">오늘 가장 중요한 문장</div>
+    <p><strong>센서가 재는 것과 우리가 알고 싶은 것은 다를 수 있습니다.</strong></p>
+    <p>앞으로 받을 센서들도 마찬가지예요. 가스 센서는 "담배 연기"를 재는 게 아니라 공기 중 특정 성분에 반응할 뿐이고, 토양 수분 센서는 "물"이 아니라 흙이 전기를 얼마나 잘 통하는지를 잽니다. 이 차이를 아는 것이 센서를 제대로 쓰는 첫걸음입니다.</p>
+  </div>
+
+  <h3>그럼 이 센서는 쓸모가 없나요?</h3>
+
+  <p>그렇지 않습니다. <strong>절대적인 온도</strong>는 못 믿어도 <strong>변화</strong>는 잘 잡아냅니다. "지금 몇 도인가"에는 약하지만 "아까보다 따뜻해졌나"에는 강해요.</p>
+
+  <p>차이가 일정하다면 보정도 가능합니다. 방이 22도인데 피코가 27도라면, 코드에서 5를 빼주면 되겠죠. 다만 그 5가 항상 5일지는 확인해 봐야 합니다.</p>
+</section>
+
+<section id="trouble" class="wrap">
+  <h2>막힐 때 보는 곳</h2>
+  <div class="h2sub">손을 들기 전에 여기부터</div>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>이런 상황이면</th><th>이렇게 해 보세요</th></tr></thead>
+    <tbody>
+      <tr><th>값이 0이나 65535로 고정</th><td>ADC 번호를 확인하세요. <code class="inl">ADC(4)</code>가 맞습니다. 0이나 26으로 적으면 아무것도 안 꽂힌 핀을 읽습니다</td></tr>
+      <tr><th>말도 안 되는 온도 (-40도 등)</th><td>계산식의 숫자를 다시 확인하세요. 0.706과 0.001721, 자리수가 헷갈리기 쉽습니다</td></tr>
+      <tr><th>NameError: ADC</th><td>첫 줄 <code class="inl">from machine import ADC</code>를 빠뜨렸습니다</td></tr>
+      <tr><th>숫자가 너무 빨리 지나감</th><td><code class="inl">time.sleep(1)</code>이 있는지 확인. 없으면 화면이 폭포처럼 흐릅니다</td></tr>
+      <tr><th>소수점이 너무 김</th><td><code class="inl">round(값, 1)</code>로 감싸주세요</td></tr>
+      <tr><th>멈추질 않음</th><td>토니의 빨간 정지(STOP) 버튼</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="record" class="wrap">
+  <h2>오늘의 기록</h2>
+  <div class="h2sub">깃허브에 남기기</div>
+
+  <p>오늘부터 각자 깃허브 저장소에 기록을 남깁니다. <code class="inl">LOG.md</code> 파일을 만들고 아래 형식으로 채워 주세요.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="cm"># 2차시 — 피코 속에 숨은 온도계</span>
+
+<span class="cm">## 측정한 값 10개</span>
+27.3, 26.8, ...
+
+<span class="cm">## 평균</span>
+27.1 도
+
+<span class="cm">## 집 온도계는 몇 도였나</span>
+22 도
+
+<span class="cm">## 차이는 몇 도였나 / 왜 그럴까</span>
+
+<span class="cm">## 손으로 감쌌을 때 몇 도까지 올라갔나</span>
+
+<span class="cm">## 오늘 새로 알게 된 것</span>
+
+<span class="cm">## 아직 모르겠는 것</span></pre></div>
+
+  <p>"아직 모르겠는 것"을 꼭 적어 주세요. 빈칸으로 두지 말고요. 모르는 걸 적는 건 실력이 없다는 뜻이 아니라, 자기가 어디까지 알고 있는지 정확히 안다는 뜻입니다.</p>
+
+  <h3>점검하기</h3>
+
+  <details>
+    <summary><code class="inl">read_u16()</code>이 돌려주는 숫자는 무엇인가요?</summary>
+    <div class="ans">온도가 아니라, 전압을 0부터 65535까지의 눈금으로 나타낸 값입니다. 0이 0V, 65535가 3.3V예요.</div>
+  </details>
+
+  <details>
+    <summary>숫자가 커지면 왜 온도가 내려가나요?</summary>
+    <div class="ans">이 센서는 온도가 오르면 전압이 낮아지는 성질을 가지고 있습니다. 그래서 계산식에 뺄셈이 들어가고, 큰 숫자(=높은 전압)는 낮은 온도를 뜻하게 됩니다.</div>
+  </details>
+
+  <details>
+    <summary>같은 자리에 가만히 뒀는데 값이 계속 바뀌는 이유는?</summary>
+    <div class="ans">전기 신호에 항상 섞여 있는 작은 떨림(노이즈) 때문입니다. 없앨 수는 없고, 여러 번 재서 평균을 내면 영향을 줄일 수 있습니다.</div>
+  </details>
+
+  <details>
+    <summary>피코 온도가 집 온도계보다 높게 나오는 이유는?</summary>
+    <div class="ans">이 센서는 방 공기가 아니라 칩 자신의 온도를 잽니다. 칩이 동작하면서 스스로 열을 내기 때문에 주변 공기보다 따뜻합니다.</div>
+  </details>
+
+  <details>
+    <summary>ADC는 무엇을 하는 장치인가요?</summary>
+    <div class="ans">연속적으로 변하는 아날로그 신호(전압)를 컴퓨터가 다룰 수 있는 숫자로 바꿔주는 장치입니다. 앞으로 쓸 가스·토양·조도 센서가 모두 이걸 거쳐 갑니다.</div>
+  </details>
+
+  <h3>오늘 한 일</h3>
+  <ul class="check" id="cl">
+    <li><input type="checkbox" id="c1"><label for="c1"><code class="inl">ADC(4)</code>로 날것의 숫자를 읽었다</label></li>
+    <li><input type="checkbox" id="c2"><label for="c2">숫자를 전압으로, 전압을 온도로 바꿨다</label></li>
+    <li><input type="checkbox" id="c3"><label for="c3">손으로 감싸서 값이 변하는 걸 확인했다</label></li>
+    <li><input type="checkbox" id="c4"><label for="c4">10번 평균 내는 코드를 만들었다</label></li>
+    <li><input type="checkbox" id="c5"><label for="c5">집 온도계와 비교해 봤다</label></li>
+    <li><input type="checkbox" id="c6"><label for="c6">깃허브에 <code class="inl">LOG.md</code>를 올렸다</label></li>
+  </ul>
+</section>
+
+<section class="wrap" style="border:none;padding-top:0">
+  <div class="next">
+    <h2>다음 시간 예고</h2>
+    <p>오늘 잰 온도는 노트북 화면에서만 볼 수 있었습니다. 다음 시간에는 피코를 <strong>우리 집 와이파이</strong>에 연결하고, 값을 <strong>스마트폰으로</strong> 봅니다.</p>
+    <p>그리고 눈에 보이지 않는 와이파이 신호의 세기를 재서, 우리 집에서 와이파이가 가장 약한 곳이 어디인지 찾아봅니다. 화장실일까요, 안방일까요?</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p>인공지능과 피지컬 컴퓨팅 · 2차시 피코 속에 숨은 온도계</p>
+  <p style="margin-top:.3rem">라즈베리파이 피코 2 W + 마이크로파이썬</p>
+</footer>
+
+<script>
+(function(){
+  // 변환 계산기
+  var raw=document.getElementById('raw'),
+      cr=document.getElementById('c-raw'),
+      cv=document.getElementById('c-volt'),
+      ct=document.getElementById('c-temp');
+  function update(){
+    var r=parseInt(raw.value,10);
+    var v=r*3.3/65535;
+    var t=27-(v-0.706)/0.001721;
+    cr.textContent=r;
+    cv.textContent=v.toFixed(3);
+    ct.textContent=t.toFixed(1);
+  }
+  raw.addEventListener('input',update);
+  update();
+
+  // 노이즈 시뮬레이터
+  var jb=document.getElementById('jbtn'),
+      jl=document.getElementById('jlist'),
+      js=document.getElementById('jsum');
+  jb.addEventListener('click',function(){
+    var base=26.5+Math.random()*2, vals=[], i;
+    for(i=0;i<10;i++){
+      var n=(Math.random()+Math.random()+Math.random()-1.5)*0.7;
+      vals.push(base+n);
+    }
+    jl.textContent=vals.map(function(x){return x.toFixed(1);}).join('  ');
+    var sum=vals.reduce(function(a,b){return a+b;},0);
+    var avg=sum/vals.length;
+    var lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals);
+    js.textContent='가장 낮은 값과 높은 값의 차이 '+(hi-lo).toFixed(1)+'도  ·  평균 '+avg.toFixed(1)+'도';
+  });
+
+  // 코드 복사
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var code=btn.parentNode.querySelector('pre').innerText;
+      var done=function(){btn.textContent='복사됨';setTimeout(function(){btn.textContent='복사';},1400);};
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(code).then(done,function(){btn.textContent='실패';});
+      } else {
+        var ta=document.createElement('textarea');
+        ta.value=code; document.body.appendChild(ta); ta.select();
+        try{document.execCommand('copy');done();}catch(e){btn.textContent='실패';}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  // 체크리스트
+  var boxes=document.querySelectorAll('#cl input[type=checkbox]'), KEY='pico-ch3-check', saved={};
+  try{ saved=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ saved={}; }
+  boxes.forEach(function(b){
+    if(saved[b.id]) b.checked=true;
+    b.addEventListener('change',function(){
+      saved[b.id]=b.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+    });
+  });
+})();
+</script>
+</body>
+</html>
