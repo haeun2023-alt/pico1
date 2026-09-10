@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4차시 · 폰으로 보는 피코 — 인공지능과 피지컬 컴퓨팅</title>
+<meta name="description" content="피코를 작은 웹서버로 만들어 스마트폰으로 값을 봅니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0EA;
+  --paper-2:#F7F9F5;
+  --ink:#15211C;
+  --ink-soft:#4C5B54;
+  --board:#0E5C3F;
+  --board-dk:#083A28;
+  --copper:#A9682B;
+  --rule:#C6D0C6;
+  --max:37rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:4.5rem}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'IBM Plex Sans KR',system-ui,sans-serif;
+  font-weight:400;font-size:17px;line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 1.25rem}
+
+.bar{position:sticky;top:0;z-index:50;background:rgba(237,240,234,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.bar-in{max-width:var(--max);margin:0 auto;padding:.55rem 1.25rem;display:flex;gap:1rem;align-items:center;overflow-x:auto;scrollbar-width:none}
+.bar-in::-webkit-scrollbar{display:none}
+.bar a{color:var(--ink-soft);text-decoration:none;white-space:nowrap;font-size:.82rem;font-weight:500;padding:.2rem 0;border-bottom:2px solid transparent}
+.bar a:hover,.bar a:focus-visible{color:var(--board);border-bottom-color:var(--board)}
+
+.hero{padding:3.5rem 0 2.5rem}
+.kicker{font-size:.8rem;color:var(--copper);font-weight:600;letter-spacing:.02em}
+h1{font-size:clamp(2rem,6.6vw,2.9rem);line-height:1.14;font-weight:700;letter-spacing:-.03em;margin:.5rem 0 .9rem}
+.lede{font-size:1.06rem;color:var(--ink-soft);font-weight:300;max-width:32rem}
+
+/* converter */
+.sim{margin:2.25rem 0 0;background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.pipe{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:.4rem;padding:1.4rem 1rem 1rem;text-align:center}
+.cell .lab{font-size:.7rem;color:var(--ink-soft);margin-bottom:.2rem}
+.cell .num{font-family:'IBM Plex Mono',monospace;font-size:1.05rem;font-weight:600;color:var(--board);line-height:1.3}
+.cell .unit{font-size:.7rem;color:var(--ink-soft)}
+.arrow{color:var(--copper);font-size:.9rem}
+.sim-ctl{padding:.6rem 1.1rem 1.1rem;border-top:1px solid var(--rule)}
+.slider-row{display:flex;align-items:center;gap:.75rem}
+.slider-row label{font-size:.8rem;color:var(--ink-soft);white-space:nowrap}
+input[type=range]{flex:1;accent-color:var(--board);min-width:0}
+.sim-note{font-size:.78rem;color:var(--ink-soft);margin-top:.7rem}
+button.p{font-family:'IBM Plex Sans KR',sans-serif;font-size:.83rem;font-weight:500;background:transparent;color:var(--ink-soft);border:1px solid var(--rule);border-radius:2px;padding:.32rem .8rem;cursor:pointer}
+button.p:hover{border-color:var(--board);color:var(--board)}
+button.p:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+/* flow diagram */
+.flow{display:flex;align-items:stretch;gap:.5rem;margin:1.1rem 0;flex-wrap:wrap}
+.flow .fb{
+  flex:1 1 8rem;background:var(--paper-2);border:1px solid var(--rule);
+  border-radius:3px;padding:.7rem .6rem;text-align:center;font-size:.85rem;line-height:1.5;
+}
+.flow .fb b{display:block;font-weight:600}
+.flow .fb span{font-size:.75rem;color:var(--ink-soft)}
+.flow .fa{align-self:center;color:var(--copper);font-size:.85rem;flex:none}
+
+/* jitter box */
+.jitter{background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:1.1rem;margin:1.4rem 0}
+#jlist{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--ink-soft);margin-top:.8rem;line-height:1.9;word-break:break-all}
+#jsum{font-size:.88rem;margin-top:.6rem;color:var(--board);font-weight:500}
+
+section{padding:2.75rem 0;border-top:1px solid var(--rule)}
+h2{font-size:1.45rem;font-weight:700;letter-spacing:-.02em;line-height:1.3;margin-bottom:.35rem}
+.h2sub{font-size:.85rem;color:var(--copper);font-weight:500;margin-bottom:1.3rem}
+h3{font-size:1.05rem;font-weight:600;margin:1.9rem 0 .55rem;letter-spacing:-.01em}
+p{margin:.85rem 0}
+strong{font-weight:600}
+a{color:var(--board)}
+ul,ol{margin:.85rem 0 .85rem 1.15rem}
+li{margin:.3rem 0;padding-left:.2rem}
+
+.tw{overflow-x:auto;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:20rem}
+th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-weight:600;font-size:.8rem;color:var(--ink-soft);border-bottom:1.5px solid var(--ink)}
+tbody th{font-weight:500;color:var(--ink-soft);white-space:nowrap}
+
+.step{display:grid;grid-template-columns:1.9rem 1fr;gap:.1rem 1rem;margin:1.5rem 0}
+.step-n{font-family:'IBM Plex Mono',monospace;font-size:.9rem;font-weight:600;color:#fff;background:var(--board);width:1.7rem;height:1.7rem;border-radius:50%;display:grid;place-items:center;margin-top:.15rem}
+.step-b{grid-column:2}
+.step-t{font-weight:600;margin:.1rem 0 .25rem}
+.step p{margin:.35rem 0}
+
+.code{position:relative;margin:1.1rem 0;background:var(--board-dk);border-radius:3px}
+.code pre{overflow-x:auto;padding:1rem 1.1rem;font-family:'IBM Plex Mono','IBM Plex Sans KR',monospace;font-size:.85rem;line-height:1.65;color:#DCE8DF}
+.code .cm{color:#7FA88E}
+.code .kw{color:#8FD9A8;font-weight:600}
+.code .st{color:#E8C48A}
+.code .nu{color:#E8C48A}
+.copy{position:absolute;top:.45rem;right:.45rem;font-size:.7rem;font-family:'IBM Plex Mono',monospace;background:rgba(255,255,255,.08);color:#B9CFC0;border:none;border-radius:2px;padding:.25rem .5rem;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.18);color:#fff}
+code.inl{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:#DDE4DA;padding:.08em .35em;border-radius:2px}
+
+.note{border-left:3px solid var(--copper);background:var(--paper-2);padding:.9rem 1.1rem;margin:1.4rem 0;font-size:.93rem}
+.note-t{font-weight:600;margin-bottom:.25rem}
+.note.tip{border-left-color:var(--board)}
+.note p{margin:.4rem 0}
+.note p:first-of-type{margin-top:0}
+.note p:last-child{margin-bottom:0}
+
+details{border-bottom:1px solid var(--rule);padding:.85rem 0}
+details summary{cursor:pointer;font-weight:500;list-style:none;display:flex;gap:.6rem;align-items:baseline}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"?";font-family:'IBM Plex Mono',monospace;color:var(--copper);font-weight:600;flex:none}
+details[open] summary::before{content:"!";color:var(--board)}
+details .ans{padding:.5rem 0 0 1.2rem;color:var(--ink-soft);font-size:.93rem}
+
+.check{list-style:none;margin:1.1rem 0 0;padding:0}
+.check li{display:flex;gap:.65rem;align-items:flex-start;margin:.5rem 0;padding:0}
+.check input{margin-top:.42rem;accent-color:var(--board);width:1rem;height:1rem;flex:none}
+.check label{cursor:pointer}
+.check input:checked+label{color:var(--ink-soft);text-decoration:line-through}
+
+footer{border-top:1px solid var(--rule);padding:2.25rem 0 3.5rem;font-size:.85rem;color:var(--ink-soft)}
+.next{background:var(--board);color:#EAF3EC;border-radius:4px;padding:1.5rem 1.4rem;margin:1rem 0 0}
+.next h2{color:#fff;font-size:1.2rem;margin-bottom:.4rem}
+.next p{margin:.4rem 0;font-size:.95rem;color:#C7DDCE}
+
+@media (max-width:420px){
+  .pipe{grid-template-columns:1fr;gap:.15rem}
+  .arrow{transform:rotate(90deg);font-size:.8rem}
+}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+@media print{.bar,.sim-ctl,.copy{display:none}body{background:#fff;font-size:11pt}section{page-break-inside:avoid}}
+
+/* rssi meter */
+.meter{display:flex;align-items:flex-end;gap:.35rem;height:3.2rem;justify-content:center;padding:1.4rem 1rem .6rem}
+.meter i{display:block;width:1.1rem;background:var(--rule);border-radius:2px 2px 0 0;transition:background .15s}
+.meter i.on{background:var(--board)}
+.meter i:nth-child(1){height:30%}.meter i:nth-child(2){height:50%}.meter i:nth-child(3){height:70%}.meter i:nth-child(4){height:90%}.meter i:nth-child(5){height:100%}
+.mread{text-align:center;padding:0 1rem .4rem}
+.mread .num{font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:600;color:var(--board)}
+.mread .lab{font-size:.85rem;color:var(--ink-soft)}
+/* phone mock */
+.phone{width:220px;margin:1.3rem auto .6rem;background:#0f0f23;border-radius:18px;padding:14px 12px;box-shadow:0 0 0 4px #2a2a3e}
+.phone h4{color:#00d4ff;font-size:.85rem;text-align:center;margin-bottom:8px;font-weight:600}
+.phone .g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.phone .c{background:#1a1a3e;border-radius:8px;padding:8px 4px;text-align:center;border:1px solid #2a2a5e}
+.phone .c .l{color:#888;font-size:.55rem}
+.phone .c .v{color:#00d4ff;font-size:.8rem;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.phone .c.w{grid-column:span 2;color:#666;font-size:.55rem}
+.center{text-align:center}
+</style>
+</head>
+<body>
+
+<nav class="bar" aria-label="목차">
+  <div class="bar-in">
+    <a href="#review">복습</a>
+    <a href="#intro">서버란</a>
+    <a href="#run">실행하기</a>
+    <a href="#edit">내 것으로</a>
+    <a href="#temp">온도 넣기</a>
+    <a href="#walk">들고 다니기</a>
+    <a href="#trouble">막힐 때</a>
+    <a href="#record">오늘의 기록</a>
+  </div>
+</nav>
+
+<main>
+
+<header class="hero wrap">
+  <div class="kicker">인공지능과 피지컬 컴퓨팅 · 4차시</div>
+  <h1>폰으로 보는 피코</h1>
+  <p class="lede">피코를 작은 웹서버로 만듭니다. 그러면 노트북 없이, 스마트폰 브라우저에서 피코의 값을 볼 수 있어요. 오늘 만든 페이지는 같은 와이파이를 쓰는 가족 누구나 열어볼 수 있습니다.</p>
+
+  <div class="sim">
+    <div class="phone" aria-label="스마트폰 화면 예시">
+      <h4>Pico Wi-Fi 모니터</h4>
+      <div class="g">
+        <div class="c"><div class="l">Wi-Fi 신호</div><div class="v" id="p-rssi">-58 dBm</div></div>
+        <div class="c"><div class="l">온도</div><div class="v" id="p-temp">27.4 °C</div></div>
+        <div class="c"><div class="l">IP 주소</div><div class="v" style="font-size:.6rem">192.168.0.23</div></div>
+        <div class="c"><div class="l">가동 시간</div><div class="v" id="p-up">12초</div></div>
+        <div class="c w">새로고침하면 데이터가 업데이트됩니다</div>
+      </div>
+    </div>
+    <div class="sim-ctl center">
+      <button class="p" id="p-btn">↻ 새로고침</button>
+      <p class="sim-note">누를 때마다 피코가 <strong>새 값</strong>을 보내줍니다. 저절로 바뀌지는 않아요. 왜 그런지 아래에서 알아봅니다.</p>
+    </div>
+  </div>
+</header>
+
+<section id="review" class="wrap">
+  <h2>지난 시간 복습</h2>
+  <div class="h2sub">0. 돌아보기 — <a href="lesson3.html">3차시 자료</a></div>
+
+  <ul>
+    <li>비밀번호는 <code class="inl">wifi_config.py</code>에 따로. 오늘도 그 파일을 그대로 씁니다</li>
+    <li><code class="inl">wlan.connect()</code> 뒤에 <code class="inl">isconnected()</code>가 될 때까지 기다린다</li>
+    <li>RSSI는 마이너스, 0에 가까울수록 강함</li>
+    <li>피코는 2.4GHz만. 5G 붙은 와이파이는 안 됨</li>
+  </ul>
+
+  <div class="note tip">
+    <div class="note-t">시작 전 확인</div>
+    <p>지난 시간에 메모한 <strong>IP 주소</strong>를 꺼내두세요. 그리고 <strong>스마트폰이 피코와 같은 와이파이</strong>에 붙어 있는지 확인하세요. 폰이 5G 쪽에 붙어 있으면 이름을 2.4GHz 쪽으로 바꿔야 합니다. 이것 때문에 안 되는 경우가 제일 많아요.</p>
+  </div>
+</section>
+
+<section id="intro" class="wrap">
+  <h2>서버란 무엇인가</h2>
+  <div class="h2sub">1. 돌아보기</div>
+
+  <p>여러분이 브라우저에 주소를 치면, 어딘가에 있는 컴퓨터가 "이 페이지 줘"라는 <strong>요청</strong>을 받고 페이지를 만들어 <strong>응답</strong>합니다. 그 컴퓨터를 <strong>서버</strong>라고 불러요.</p>
+
+  <div class="flow">
+    <div class="fb"><b>스마트폰</b><span>주소 입력 = 요청</span></div>
+    <div class="fa">▶</div>
+    <div class="fb"><b>피코</b><span>페이지 만들기</span></div>
+    <div class="fa">◀</div>
+    <div class="fb"><b>스마트폰</b><span>화면에 표시 = 응답</span></div>
+  </div>
+
+  <p>오늘 피코가 그 서버가 됩니다. 폰이 피코의 IP 주소로 요청을 보내면, 피코가 지금 신호 세기와 온도를 담은 페이지를 만들어 돌려줍니다.</p>
+
+  <h3>기억할 것 두 가지</h3>
+
+  <p><strong>같은 와이파이 안에서만 됩니다.</strong> 피코의 IP는 우리 집 공유기가 준 주소라서, 밖에서는 못 찾아요. 학교에서 우리 집 피코에 접속하는 건 안 됩니다.</p>
+
+  <p><strong>새로고침해야 갱신됩니다.</strong> 서버는 요청이 올 때만 일합니다. 페이지를 열어둔 채 기다려도 값은 안 바뀌어요. 맨 위 화면에서 버튼을 눌러본 이유가 이겁니다.</p>
+</section>
+
+<section id="run" class="wrap">
+  <h2>활동 1. 서버 띄우고 폰으로 접속</h2>
+  <div class="h2sub">목표 — 피코가 만든 페이지를 스마트폰에서 연다</div>
+
+  <p>코드가 좀 깁니다. 지금은 전부 이해하지 않아도 됩니다. 먼저 돌려보고, 다음 활동에서 필요한 부분만 뜯어봅니다.</p>
+
+  <p>직접 다 치지 말고 선생님이 나눠준 <code class="inl">4-1_server.py</code> 파일을 여세요. 그 파일을 <strong>Raspberry Pi Pico</strong>에 <code class="inl">server.py</code>라는 이름으로 저장하면 됩니다. 아래는 같은 내용이니 눈으로 따라 읽어 보세요.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">import</span> network
+<span class="kw">import</span> socket
+<span class="kw">import</span> time
+<span class="kw">from</span> wifi_config <span class="kw">import</span> WIFI_SSID, WIFI_PASSWORD
+
+<span class="cm"># ── 와이파이 연결 (지난 시간과 같음) ──</span>
+wlan = network.WLAN(network.STA_IF)
+wlan.active(<span class="kw">True</span>)
+wlan.connect(WIFI_SSID, WIFI_PASSWORD)
+
+wait = <span class="nu">0</span>
+<span class="kw">while</span> <span class="kw">not</span> wlan.isconnected():
+    time.sleep(<span class="nu">1</span>)
+    wait += <span class="nu">1</span>
+    <span class="kw">if</span> wait &gt; <span class="nu">15</span>:
+        <span class="kw">print</span>(<span class="st">"연결 실패"</span>)
+        <span class="kw">raise</span> SystemExit
+
+my_ip = wlan.ifconfig()[<span class="nu">0</span>]
+<span class="kw">print</span>(<span class="st">"연결 완료  http://"</span> + my_ip)
+
+<span class="cm"># ── 페이지 만들기 ──</span>
+<span class="kw">def</span> make_page():
+    rssi = wlan.status(<span class="st">'rssi'</span>)
+    uptime = time.ticks_ms() // <span class="nu">1000</span>
+    <span class="kw">return</span> <span class="st">f&quot;&quot;&quot;&lt;!DOCTYPE html&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+&lt;title&gt;Pico 모니터&lt;/title&gt;
+&lt;style&gt;
+  body {{ font-family: sans-serif; background: #0f0f23; color: #ccc;
+         padding: 20px; text-align: center; }}
+  h1 {{ color: #00d4ff; font-size: 1.4em; }}
+  .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+           max-width: 400px; margin: 20px auto; }}
+  .card {{ background: #1a1a3e; border-radius: 12px; padding: 18px; }}
+  .label {{ color: #888; font-size: 0.8em; }}
+  .value {{ color: #00d4ff; font-size: 1.4em; font-weight: bold; }}
+&lt;/style&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Pico Wi-Fi 모니터&lt;/h1&gt;
+&lt;div class="grid"&gt;
+  &lt;div class="card"&gt;&lt;div class="label"&gt;Wi-Fi 신호&lt;/div&gt;
+       &lt;div class="value"&gt;{rssi} dBm&lt;/div&gt;&lt;/div&gt;
+  &lt;div class="card"&gt;&lt;div class="label"&gt;IP 주소&lt;/div&gt;
+       &lt;div class="value" style="font-size:1em"&gt;{my_ip}&lt;/div&gt;&lt;/div&gt;
+  &lt;div class="card"&gt;&lt;div class="label"&gt;가동 시간&lt;/div&gt;
+       &lt;div class="value"&gt;{uptime}초&lt;/div&gt;&lt;/div&gt;
+  &lt;div class="card"&gt;&lt;div class="label"&gt;만든 사람&lt;/div&gt;
+       &lt;div class="value"&gt;이름&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;p style="color:#666;font-size:0.8em"&gt;새로고침하면 데이터가 업데이트됩니다&lt;/p&gt;
+&lt;/body&gt;&lt;/html&gt;&quot;&quot;&quot;</span>
+
+<span class="cm"># ── 서버 시작 ──</span>
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="nu">1</span>)
+server.bind((<span class="st">'0.0.0.0'</span>, <span class="nu">80</span>))
+server.listen(<span class="nu">2</span>)
+<span class="kw">print</span>(<span class="st">"서버 시작. 폰에서 위 주소로 접속하세요."</span>)
+
+<span class="kw">while</span> <span class="kw">True</span>:
+    <span class="kw">try</span>:
+        client, addr = server.accept()      <span class="cm"># 누가 접속할 때까지 기다림</span>
+        request = client.recv(<span class="nu">1024</span>)
+        <span class="kw">if</span> <span class="st">b'favicon'</span> <span class="kw">in</span> request:            <span class="cm"># 브라우저 아이콘 요청은 무시</span>
+            client.close()
+            <span class="kw">continue</span>
+        <span class="kw">print</span>(<span class="st">"접속:"</span>, addr[<span class="nu">0</span>])
+        client.send(<span class="st">b"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n"</span>)
+        client.send(make_page().encode())
+        client.close()
+    <span class="kw">except</span> Exception <span class="kw">as</span> e:
+        <span class="kw">print</span>(<span class="st">"에러:"</span>, e)
+        <span class="kw">try</span>:
+            client.close()
+        <span class="kw">except</span>:
+            <span class="kw">pass</span></pre></div>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">실행하고 주소 확인</div>
+      <p>셸에 <code class="inl">연결 완료 http://192.168.x.x</code>가 뜹니다. 이 주소가 오늘의 핵심이에요.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">폰 브라우저에 주소 입력</div>
+      <p>검색창이 아니라 <strong>주소창</strong>에 <code class="inl">http://192.168.x.x</code>를 그대로 칩니다. 검색하면 구글로 갑니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">셸에서 "접속:" 확인</div>
+      <p>폰에서 페이지가 열리는 순간 토니 셸에 <code class="inl">접속: 192.168.x.y</code>가 찍힙니다. 폰의 주소예요. 피코가 폰의 요청을 받았다는 증거입니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">4</div>
+    <div class="step-b">
+      <div class="step-t">가족 폰으로도</div>
+      <p>같은 와이파이에 있는 다른 폰이나 태블릿에서도 열어보세요. 셸에 접속 기록이 하나 더 찍힙니다.</p>
+    </div>
+  </div>
+</section>
+
+<section id="edit" class="wrap">
+  <h2>활동 2. 내 페이지로 만들기</h2>
+  <div class="h2sub">목표 — HTML 부분을 고쳐 나만의 페이지를 만든다</div>
+
+  <p>코드 가운데 <code class="inl">make_page()</code> 안의 큰따옴표 세 개 사이가 <strong>HTML</strong>입니다. 브라우저가 화면을 그리는 언어예요. 이 부분만 고치면 페이지가 바뀝니다.</p>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">이름 넣기</div>
+      <p><code class="inl">&lt;div class="value"&gt;이름&lt;/div&gt;</code>에서 "이름"을 본인 이름으로. 저장 → 정지 → 다시 실행 → 폰 새로고침.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">색 바꾸기</div>
+      <p><code class="inl">#00d4ff</code>가 하늘색입니다. <code class="inl">#ff6b6b</code>(빨강), <code class="inl">#7ce05a</code>(초록)로 바꿔 보세요. 여섯 자리 중 앞 둘이 빨강, 가운데가 초록, 뒤가 파랑의 양입니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">제목 바꾸기</div>
+      <p><code class="inl">&lt;h1&gt;Pico Wi-Fi 모니터&lt;/h1&gt;</code>를 마음대로. "○○이의 피코"처럼요.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="note-t">중괄호가 두 개인 이유</div>
+    <p>HTML 안에 <code class="inl">{{ }}</code>가 두 겹으로 보일 거예요. 이 문자열은 파이썬 f-string이라 <code class="inl">{rssi}</code>처럼 한 겹은 "여기에 변수 값을 넣어라"는 뜻입니다. CSS에서 진짜 중괄호를 쓰려면 두 겹으로 써야 해요. 한 겹으로 고치면 에러가 납니다.</p>
+  </div>
+</section>
+
+<section id="temp" class="wrap">
+  <h2>활동 3. 온도 카드 추가하기</h2>
+  <div class="h2sub">목표 — 2차시 온도 센서를 페이지에 붙인다</div>
+
+  <p>2차시에 만든 온도 읽기를 이 페이지에 넣습니다. 세 군데를 고칩니다.</p>
+
+  <p><strong>① 맨 위 import 아래에</strong> 센서 준비를 추가합니다.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="kw">from</span> machine <span class="kw">import</span> ADC
+sensor = ADC(<span class="nu">4</span>)
+
+<span class="kw">def</span> read_temp():
+    volt = sensor.read_u16() * <span class="nu">3.3</span> / <span class="nu">65535</span>
+    <span class="kw">return</span> <span class="kw">round</span>(<span class="nu">27</span> - (volt - <span class="nu">0.706</span>) / <span class="nu">0.001721</span>, <span class="nu">1</span>)</pre></div>
+
+  <p><strong>② make_page() 안, uptime 줄 아래에</strong> 온도를 읽는 줄을 추가합니다.</p>
+
+  <div class="code"><button class="copy">복사</button><pre>    temp = read_temp()</pre></div>
+
+  <p><strong>③ HTML의 "만든 사람" 카드 앞에</strong> 카드를 하나 더 넣습니다.</p>
+
+  <div class="code"><button class="copy">복사</button><pre>  &lt;div class="card"&gt;&lt;div class="label"&gt;온도&lt;/div&gt;
+       &lt;div class="value"&gt;{temp} °C&lt;/div&gt;&lt;/div&gt;</pre></div>
+
+  <p>저장하고 다시 실행한 뒤 폰을 새로고침하면 온도 카드가 생깁니다. 피코를 손으로 감싸고 새로고침해 보세요.</p>
+
+  <div class="note tip">
+    <div class="note-t">방금 한 일의 의미</div>
+    <p><strong>센서 값을 읽어서(2차시) → 네트워크로 보내고(3차시) → 화면에 보여준다(4차시)</strong>. 이 세 단계가 앞으로 만들 모든 프로젝트의 뼈대입니다. 센서만 가스 센서나 조도 센서로 바꾸면 그대로 작동해요.</p>
+  </div>
+</section>
+
+<section id="walk" class="wrap">
+  <h2>활동 4. 피코만 들고 다니기</h2>
+  <div class="h2sub">목표 — 노트북 없이 신호 지도를 다시 그린다</div>
+
+  <p>지난 시간엔 노트북을 들고 다녔죠. 오늘은 피코만 들고 갑니다.</p>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">main.py로 저장</div>
+      <p>지금 코드를 <strong>파일 → 다른 이름으로 저장</strong> → Raspberry Pi Pico → <code class="inl">main.py</code>. 이러면 전원만 있으면 혼자 돕니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">보조배터리에 꽂기</div>
+      <p>USB를 노트북에서 뽑아 보조배터리에 꽂습니다. 내장 LED가 잠깐 반짝이면 켜진 거예요. 10초쯤 기다리면 와이파이에 붙습니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">폰으로 접속해서 순회</div>
+      <p>같은 와이파이라면 주소는 지난번과 같을 가능성이 높습니다. 장소를 옮겨가며 새로고침하고 값을 봅니다. 지난 시간 지도와 비교해 보세요.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <div class="note-t">주소가 바뀌었다면</div>
+    <p>공유기가 가끔 다른 IP를 줍니다. 그럴 땐 피코를 다시 노트북에 꽂고 셸에서 주소를 확인하세요. 정지 버튼을 눌러야 셸이 돌아옵니다.</p>
+    <p>그리고 다음 시간 실습 전에는 <strong>main.py를 지우거나 이름을 바꿔 두세요.</strong> 안 그러면 케이블을 꽂을 때마다 서버가 먼저 떠서 코딩이 불편합니다.</p>
+  </div>
+</section>
+
+<section id="trouble" class="wrap">
+  <h2>막힐 때 보는 곳</h2>
+  <div class="h2sub">폰에서 페이지가 안 열릴 때</div>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>이런 상황이면</th><th>이렇게 해 보세요</th></tr></thead>
+    <tbody>
+      <tr><th>폰에서 "응답 없음"</th><td>① 폰이 피코와 <strong>같은 와이파이</strong>인지 (5G 아닌 쪽) ② 주소창에 <code class="inl">http://</code>까지 정확히 ③ 셸에 "서버 시작"이 떴는지</td></tr>
+      <tr><th>셸에 접속은 찍히는데 화면이 하얗다</th><td>HTML을 고치다 따옴표나 중괄호를 깨뜨린 경우. 활동 1 원본으로 되돌려 확인</td></tr>
+      <tr><th>OSError: [Errno 98] EADDRINUSE</th><td>이전 서버가 아직 살아 있습니다. 정지 버튼 → 케이블 뽑았다 다시 꽂기</td></tr>
+      <tr><th>SyntaxError: f-string</th><td>HTML 안 중괄호를 한 겹으로 쓴 경우. CSS 중괄호는 <code class="inl">{{ }}</code> 두 겹</td></tr>
+      <tr><th>값이 안 바뀐다</th><td>새로고침을 안 한 겁니다. 서버는 요청이 올 때만 페이지를 만듭니다</td></tr>
+      <tr><th>모바일 데이터로 접속</th><td>안 됩니다. 폰의 와이파이가 켜져 있어야 합니다</td></tr>
+      <tr><th>배터리에 꽂았는데 LED가 안 켜짐</th><td>보조배터리 중 전류가 작으면 자동으로 꺼지는 게 있습니다. 다른 배터리나 충전기 어댑터로</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="record" class="wrap">
+  <h2>오늘의 기록</h2>
+  <div class="h2sub">띵커벨에 남기기</div>
+
+  <p>띵커벨에 아래 내용을 기록해주세요.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="cm">## 4차시 — 폰으로 보는 피코</span>
+
+<span class="cm">## 폰에서 접속 성공했나 / 스크린샷</span>
+
+<span class="cm">## 내가 바꾼 것 (이름, 색, 제목, 온도 카드 등)</span>
+
+<span class="cm">## 가족 폰에서도 열어봤나 / 반응</span>
+
+<span class="cm">## 배터리로 들고 다녀본 신호 지도 (지난 시간과 비교)</span>
+
+<span class="cm">## 막혔던 것과 해결한 방법</span>
+
+<span class="cm">## 아직 모르겠는 것</span></pre></div>
+
+  <p>내가 고친 부분은 코드를 그대로 붙여넣어도 좋습니다. 단 <strong>비밀번호는 절대 붙여넣지 마세요.</strong> 코드 안에 비밀번호가 직접 들어 있지 않은지 한 번 더 확인합니다.</p>
+
+  <h3>점검하기</h3>
+
+  <details>
+    <summary>서버란 무엇인가요?</summary>
+    <div class="ans">요청을 받으면 응답을 돌려주는 컴퓨터입니다. 오늘은 피코가 폰의 요청을 받아 HTML 페이지를 만들어 돌려줬습니다.</div>
+  </details>
+
+  <details>
+    <summary>학교에서 우리 집 피코 페이지를 열 수 있나요?</summary>
+    <div class="ans">없습니다. 피코의 IP는 집 공유기 안에서만 통하는 주소라서, 같은 와이파이에 붙은 기기만 접속할 수 있습니다.</div>
+  </details>
+
+  <details>
+    <summary>페이지를 열어뒀는데 값이 안 변하는 이유는?</summary>
+    <div class="ans">서버는 요청이 올 때만 페이지를 만듭니다. 새로고침을 해야 새 요청이 가고 새 값이 옵니다.</div>
+  </details>
+
+  <details>
+    <summary>HTML 안의 중괄호를 두 겹으로 쓰는 이유는?</summary>
+    <div class="ans">f-string에서 한 겹 중괄호는 변수 자리라는 뜻이라, CSS의 진짜 중괄호는 두 겹으로 써서 구분합니다.</div>
+  </details>
+
+  <details>
+    <summary>main.py로 저장하면 무엇이 달라지나요?</summary>
+    <div class="ans">노트북 없이 전원만 넣어도 피코가 스스로 실행합니다. 그래서 보조배터리에 꽂아 들고 다닐 수 있습니다.</div>
+  </details>
+
+  <h3>오늘 한 일</h3>
+  <ul class="check" id="cl">
+    <li><input type="checkbox" id="c1"><label for="c1">서버를 띄우고 폰에서 페이지를 열었다</label></li>
+    <li><input type="checkbox" id="c2"><label for="c2">셸에서 "접속:" 기록을 확인했다</label></li>
+    <li><input type="checkbox" id="c3"><label for="c3">이름·색·제목 중 하나 이상 바꿨다</label></li>
+    <li><input type="checkbox" id="c4"><label for="c4">온도 카드를 추가했다</label></li>
+    <li><input type="checkbox" id="c5"><label for="c5">main.py로 저장해 배터리로 들고 다녔다</label></li>
+    <li><input type="checkbox" id="c6"><label for="c6">띵커벨에 오늘의 기록을 남겼다</label></li>
+  </ul>
+</section>
+
+<section class="wrap" style="border:none;padding-top:0">
+  <div class="next">
+    <h2>다음 시간 예고</h2>
+    <p>오늘 페이지를 고치면서 "이거 AI한테 시키면 안 되나?" 싶었을 거예요. 됩니다. 그런데 AI가 준 코드는 <strong>꽤 자주 안 돌아갑니다.</strong></p>
+    <p>다음 시간엔 AI에게 페이지 개조를 시켜보고, 안 되는 코드를 만났을 때 어떻게 다시 묻는지, AI 말을 어디까지 믿을지 배웁니다. 오늘 만든 server.py를 그대로 가져오세요.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p>인공지능과 피지컬 컴퓨팅 · 4차시 폰으로 보는 피코</p>
+  <p style="margin-top:.3rem">라즈베리파이 피코 2 W + 마이크로파이썬</p>
+</footer>
+
+<script>
+(function(){
+  var up=12, b=document.getElementById('p-btn');
+  b.addEventListener('click',function(){
+    up += 3+Math.floor(Math.random()*8);
+    document.getElementById('p-rssi').textContent=(-52-Math.floor(Math.random()*14))+' dBm';
+    document.getElementById('p-temp').textContent=(26.8+Math.random()*1.4).toFixed(1)+' °C';
+    document.getElementById('p-up').textContent=up+'초';
+  });
+
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var code=btn.parentNode.querySelector('pre').innerText;
+      var done=function(){btn.textContent='복사됨';setTimeout(function(){btn.textContent='복사';},1400);};
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(code).then(done,function(){btn.textContent='실패';});
+      } else {
+        var ta=document.createElement('textarea');
+        ta.value=code; document.body.appendChild(ta); ta.select();
+        try{document.execCommand('copy');done();}catch(e){btn.textContent='실패';}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+  var boxes=document.querySelectorAll('#cl input[type=checkbox]'), KEY='pico-ch4-check', saved={};
+  try{ saved=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ saved={}; }
+  boxes.forEach(function(b){
+    if(saved[b.id]) b.checked=true;
+    b.addEventListener('change',function(){
+      saved[b.id]=b.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
