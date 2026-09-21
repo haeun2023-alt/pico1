@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7차시 · LED × MQ2 미니 PJ — 인공지능과 피지컬 컴퓨팅</title>
+<meta name="description" content="LED와 MQ2로 내가 정한 문제를 푸는 미니 프로젝트">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0EA;
+  --paper-2:#F7F9F5;
+  --ink:#15211C;
+  --ink-soft:#4C5B54;
+  --board:#0E5C3F;
+  --board-dk:#083A28;
+  --copper:#A9682B;
+  --rule:#C6D0C6;
+  --max:37rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:4.5rem}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'IBM Plex Sans KR',system-ui,sans-serif;
+  font-weight:400;font-size:17px;line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 1.25rem}
+
+.bar{position:sticky;top:0;z-index:50;background:rgba(237,240,234,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.bar-in{max-width:var(--max);margin:0 auto;padding:.55rem 1.25rem;display:flex;gap:1rem;align-items:center;overflow-x:auto;scrollbar-width:none}
+.bar-in::-webkit-scrollbar{display:none}
+.bar a{color:var(--ink-soft);text-decoration:none;white-space:nowrap;font-size:.82rem;font-weight:500;padding:.2rem 0;border-bottom:2px solid transparent}
+.bar a:hover,.bar a:focus-visible{color:var(--board);border-bottom-color:var(--board)}
+
+.hero{padding:3.5rem 0 2.5rem}
+.kicker{font-size:.8rem;color:var(--copper);font-weight:600;letter-spacing:.02em}
+h1{font-size:clamp(2rem,6.6vw,2.9rem);line-height:1.14;font-weight:700;letter-spacing:-.03em;margin:.5rem 0 .9rem}
+.lede{font-size:1.06rem;color:var(--ink-soft);font-weight:300;max-width:32rem}
+
+/* converter */
+.sim{margin:2.25rem 0 0;background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.pipe{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:.4rem;padding:1.4rem 1rem 1rem;text-align:center}
+.cell .lab{font-size:.7rem;color:var(--ink-soft);margin-bottom:.2rem}
+.cell .num{font-family:'IBM Plex Mono',monospace;font-size:1.05rem;font-weight:600;color:var(--board);line-height:1.3}
+.cell .unit{font-size:.7rem;color:var(--ink-soft)}
+.arrow{color:var(--copper);font-size:.9rem}
+.sim-ctl{padding:.6rem 1.1rem 1.1rem;border-top:1px solid var(--rule)}
+.slider-row{display:flex;align-items:center;gap:.75rem}
+.slider-row label{font-size:.8rem;color:var(--ink-soft);white-space:nowrap}
+input[type=range]{flex:1;accent-color:var(--board);min-width:0}
+.sim-note{font-size:.78rem;color:var(--ink-soft);margin-top:.7rem}
+button.p{font-family:'IBM Plex Sans KR',sans-serif;font-size:.83rem;font-weight:500;background:transparent;color:var(--ink-soft);border:1px solid var(--rule);border-radius:2px;padding:.32rem .8rem;cursor:pointer}
+button.p:hover{border-color:var(--board);color:var(--board)}
+button.p:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+/* flow diagram */
+.flow{display:flex;align-items:stretch;gap:.5rem;margin:1.1rem 0;flex-wrap:wrap}
+.flow .fb{
+  flex:1 1 8rem;background:var(--paper-2);border:1px solid var(--rule);
+  border-radius:3px;padding:.7rem .6rem;text-align:center;font-size:.85rem;line-height:1.5;
+}
+.flow .fb b{display:block;font-weight:600}
+.flow .fb span{font-size:.75rem;color:var(--ink-soft)}
+.flow .fa{align-self:center;color:var(--copper);font-size:.85rem;flex:none}
+
+/* jitter box */
+.jitter{background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:1.1rem;margin:1.4rem 0}
+#jlist{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--ink-soft);margin-top:.8rem;line-height:1.9;word-break:break-all}
+#jsum{font-size:.88rem;margin-top:.6rem;color:var(--board);font-weight:500}
+
+section{padding:2.75rem 0;border-top:1px solid var(--rule)}
+h2{font-size:1.45rem;font-weight:700;letter-spacing:-.02em;line-height:1.3;margin-bottom:.35rem}
+.h2sub{font-size:.85rem;color:var(--copper);font-weight:500;margin-bottom:1.3rem}
+h3{font-size:1.05rem;font-weight:600;margin:1.9rem 0 .55rem;letter-spacing:-.01em}
+p{margin:.85rem 0}
+strong{font-weight:600}
+a{color:var(--board)}
+ul,ol{margin:.85rem 0 .85rem 1.15rem}
+li{margin:.3rem 0;padding-left:.2rem}
+
+.tw{overflow-x:auto;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:20rem}
+th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-weight:600;font-size:.8rem;color:var(--ink-soft);border-bottom:1.5px solid var(--ink)}
+tbody th{font-weight:500;color:var(--ink-soft);white-space:nowrap}
+
+.step{display:grid;grid-template-columns:1.9rem 1fr;gap:.1rem 1rem;margin:1.5rem 0}
+.step-n{font-family:'IBM Plex Mono',monospace;font-size:.9rem;font-weight:600;color:#fff;background:var(--board);width:1.7rem;height:1.7rem;border-radius:50%;display:grid;place-items:center;margin-top:.15rem}
+.step-b{grid-column:2}
+.step-t{font-weight:600;margin:.1rem 0 .25rem}
+.step p{margin:.35rem 0}
+
+.code{position:relative;margin:1.1rem 0;background:var(--board-dk);border-radius:3px}
+.code pre{overflow-x:auto;padding:1rem 1.1rem;font-family:'IBM Plex Mono','IBM Plex Sans KR',monospace;font-size:.85rem;line-height:1.65;color:#DCE8DF}
+.code .cm{color:#7FA88E}
+.code .kw{color:#8FD9A8;font-weight:600}
+.code .st{color:#E8C48A}
+.code .nu{color:#E8C48A}
+.copy{position:absolute;top:.45rem;right:.45rem;font-size:.7rem;font-family:'IBM Plex Mono',monospace;background:rgba(255,255,255,.08);color:#B9CFC0;border:none;border-radius:2px;padding:.25rem .5rem;cursor:pointer}
+.copy:hover{background:rgba(255,255,255,.18);color:#fff}
+code.inl{font-family:'IBM Plex Mono',monospace;font-size:.88em;background:#DDE4DA;padding:.08em .35em;border-radius:2px}
+
+.note{border-left:3px solid var(--copper);background:var(--paper-2);padding:.9rem 1.1rem;margin:1.4rem 0;font-size:.93rem}
+.note-t{font-weight:600;margin-bottom:.25rem}
+.note.tip{border-left-color:var(--board)}
+.note p{margin:.4rem 0}
+.note p:first-of-type{margin-top:0}
+.note p:last-child{margin-bottom:0}
+
+details{border-bottom:1px solid var(--rule);padding:.85rem 0}
+details summary{cursor:pointer;font-weight:500;list-style:none;display:flex;gap:.6rem;align-items:baseline}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"?";font-family:'IBM Plex Mono',monospace;color:var(--copper);font-weight:600;flex:none}
+details[open] summary::before{content:"!";color:var(--board)}
+details .ans{padding:.5rem 0 0 1.2rem;color:var(--ink-soft);font-size:.93rem}
+
+.check{list-style:none;margin:1.1rem 0 0;padding:0}
+.check li{display:flex;gap:.65rem;align-items:flex-start;margin:.5rem 0;padding:0}
+.check input{margin-top:.42rem;accent-color:var(--board);width:1rem;height:1rem;flex:none}
+.check label{cursor:pointer}
+.check input:checked+label{color:var(--ink-soft);text-decoration:line-through}
+
+footer{border-top:1px solid var(--rule);padding:2.25rem 0 3.5rem;font-size:.85rem;color:var(--ink-soft)}
+.next{background:var(--board);color:#EAF3EC;border-radius:4px;padding:1.5rem 1.4rem;margin:1rem 0 0}
+.next h2{color:#fff;font-size:1.2rem;margin-bottom:.4rem}
+.next p{margin:.4rem 0;font-size:.95rem;color:#C7DDCE}
+
+@media (max-width:420px){
+  .pipe{grid-template-columns:1fr;gap:.15rem}
+  .arrow{transform:rotate(90deg);font-size:.8rem}
+}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+@media print{.bar,.sim-ctl,.copy{display:none}body{background:#fff;font-size:11pt}section{page-break-inside:avoid}}
+
+/* rssi meter */
+.meter{display:flex;align-items:flex-end;gap:.35rem;height:3.2rem;justify-content:center;padding:1.4rem 1rem .6rem}
+.meter i{display:block;width:1.1rem;background:var(--rule);border-radius:2px 2px 0 0;transition:background .15s}
+.meter i.on{background:var(--board)}
+.meter i:nth-child(1){height:30%}.meter i:nth-child(2){height:50%}.meter i:nth-child(3){height:70%}.meter i:nth-child(4){height:90%}.meter i:nth-child(5){height:100%}
+.mread{text-align:center;padding:0 1rem .4rem}
+.mread .num{font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:600;color:var(--board)}
+.mread .lab{font-size:.85rem;color:var(--ink-soft)}
+/* phone mock */
+.phone{width:220px;margin:1.3rem auto .6rem;background:#0f0f23;border-radius:18px;padding:14px 12px;box-shadow:0 0 0 4px #2a2a3e}
+.phone h4{color:#00d4ff;font-size:.85rem;text-align:center;margin-bottom:8px;font-weight:600}
+.phone .g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.phone .c{background:#1a1a3e;border-radius:8px;padding:8px 4px;text-align:center;border:1px solid #2a2a5e}
+.phone .c .l{color:#888;font-size:.55rem}
+.phone .c .v{color:#00d4ff;font-size:.8rem;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.phone .c.w{grid-column:span 2;color:#666;font-size:.55rem}
+.phone .bars{display:flex;align-items:flex-end;gap:2px;height:56px;margin-top:8px;
+  background:#1a1a3e;border:1px solid #2a2a5e;border-radius:8px;padding:6px}
+.phone .bars i{flex:1;background:#00d4ff;border-radius:2px 2px 0 0;transition:height .4s}
+.center{text-align:center}
+
+.idea{border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem;margin:.8rem 0;background:var(--paper-2)}
+.idea h4{font-size:1rem;font-weight:600;margin-bottom:.3rem}
+.idea .who{font-size:.78rem;color:var(--copper);font-weight:500;margin-bottom:.5rem}
+.idea p{margin:.35rem 0;font-size:.92rem}
+.idea .diff{font-size:.8rem;color:var(--ink-soft);margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--rule)}
+.quote{border-left:3px solid var(--board);padding:.3rem 0 .3rem 1rem;margin:.9rem 0;
+  font-size:.92rem;color:var(--ink-soft);font-style:italic}
+.phase{display:inline-block;font-size:.72rem;font-weight:600;color:#fff;background:var(--board);
+  border-radius:2px;padding:.1rem .5rem;margin-right:.5rem;vertical-align:.1em}
+.timebar{display:flex;gap:2px;margin:1.3rem 0 .3rem;border-radius:3px;overflow:hidden;border:1px solid var(--rule)}
+.timebar div{padding:.5rem .3rem;text-align:center;font-size:.72rem;font-weight:500;color:#fff}
+.timebar .t1{background:#3a7a5c;flex:2}
+.timebar .t2{background:#0E5C3F;flex:4}
+.timebar .t3{background:#8a5a2b;flex:3}
+.timebar .t4{background:#5a5a6e;flex:2}
+</style>
+</head>
+<body>
+
+<nav class="bar" aria-label="목차">
+  <div class="bar-in">
+    <a href="#today">오늘의 목표</a>
+    <a href="#repo">깃허브 만들기</a>
+    <a href="#ideas">아이디어</a>
+    <a href="#pick">주제 정하기</a>
+    <a href="#build">만들기</a>
+    <a href="#readme">README</a>
+    <a href="#log">LOG 예시</a>
+    <a href="#share">링크 공유</a>
+    <a href="#check">마무리</a>
+  </div>
+</nav>
+
+<main>
+
+<header class="hero wrap">
+  <div class="kicker">인공지능과 피지컬 컴퓨팅 · 7차시</div>
+  <h1>LED × MQ2<br>미니 프로젝트</h1>
+  <p class="lede">오늘은 미니 프로젝트를 진행합니다. 지금까지 배운 LED와 MQ2로, <strong>내가 정한 문제</strong>를 푸는 작은 장치를 만들어요.</p>
+
+  <div class="timebar" aria-hidden="true">
+    <div class="t1">주제 정하기</div>
+    <div class="t2">바이브 코딩으로 만들기</div>
+    <div class="t3">친구에게 보여주고 고치기</div>
+    <div class="t4">기록</div>
+  </div>
+  <p style="font-size:.82rem;color:var(--ink-soft);text-align:center">한 시간 안에 다 못 하면 다음 시간까지 이어집니다. 급하게 완성하는 것보다 <strong>과정을 남기는 것</strong>이 중요해요.</p>
+</header>
+
+<section id="today" class="wrap">
+  <h2>오늘의 목표</h2>
+  <div class="h2sub">0. 미리보기</div>
+
+  <p>딱 두 가지입니다.</p>
+
+  <ol>
+    <li>LED와 MQ2로 <strong>어떤 문제를 풀지</strong> 정한다</li>
+    <li>바이브 코딩으로 <strong>작동하는 무언가</strong>를 만든다</li>
+  </ol>
+
+  <p>거창하지 않아도 됩니다. 5·6차시에 만든 게이지에 <strong>내 아이디어 하나</strong>를 더하면 그게 프로젝트예요.</p>
+
+  <div class="note tip">
+    <div class="note-t">꼭 가스 센서를 쓸 필요는 없어요</div>
+    <p>LED만으로도 좋은 프로젝트가 됩니다. 입김 세기 게임, 반응 속도 테스트, 감정 표현 조명처럼요. MQ2가 내 아이디어에 안 맞으면 빼도 됩니다. <strong>문제가 먼저고, 부품은 그다음</strong>입니다.</p>
+  </div>
+
+  <div class="note">
+    <div class="note-t">평가는 완성도가 아닙니다</div>
+    <p>이 수업에서 점수가 되는 건 매끈한 결과물이 아니라 <strong>과정</strong>입니다. 무엇을 만들려 했고, 어디서 막혔고, 어떻게 풀었고, 친구 의견을 어떻게 반영했는지. 그래서 <strong>기록이 곧 작품</strong>입니다.</p>
+  </div>
+</section>
+
+<section id="repo" class="wrap">
+  <h2>활동 1. 깃허브에 자리 만들기</h2>
+  <div class="h2sub">목표 — 오늘부터 여기에 기록을 쌓는다</div>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">새 저장소(Repository) 만들기</div>
+      <p><a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a> → 이름 짓기(예: <code class="inl">air-gauge</code>, <code class="inl">breath-game</code>) → Public → <strong>Add a README file</strong> 체크 → Create.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">파일 두 개를 미리 만들기</div>
+      <p>Add file → Create new file로 <code class="inl">LOG.md</code>와 <code class="inl">main.py</code>를 만들어 둡니다. 지금은 비어 있어도 됩니다. 오늘 채워 나갈 거예요.</p>
+    </div>
+  </div>
+
+  <div class="note tip">
+    <div class="note-t">wifi_config.py는 올리지 마세요</div>
+    <p>웹 대시보드를 만든다면 와이파이 비밀번호가 든 파일은 <strong>절대 올리지 않습니다.</strong> 3차시에 배운 원칙 그대로예요. main.py 안에 비밀번호가 직접 들어 있지 않은지도 확인하세요.</p>
+  </div>
+</section>
+
+<section id="ideas" class="wrap">
+  <h2>활동 2. 아이디어 모으기</h2>
+  <div class="h2sub">목표 — 막막함을 이야기로 푼다</div>
+
+  <p>처음엔 다들 막막합니다. 지난 학기 학생도 그랬어요.</p>
+
+  <div class="quote">"처음에는 뭘 만들어야 할지 막막했다. 친구들이랑 이야기하면서 아이디어가 나왔다."</div>
+
+  <p>그래서 먼저 <strong>같이 이야기합니다.</strong> 정답을 찾는 게 아니라 많이 꺼내는 게 목적이에요. 아래는 지난 학기 학생들이 실제로 낸 것들입니다.</p>
+
+  <div class="idea">
+    <h4>공기 상태 LED 게이지</h4>
+    <div class="who">가장 많이 나온 방향</div>
+    <p>공기가 좋으면 초록 한두 칸, 나빠지면 노랑으로 차오르고, 위험하면 빨갛게 깜빡. 5·6차시에 만든 것에서 바로 출발할 수 있습니다.</p>
+    <div class="diff">한 걸음 더 — 교실별·수업 전후로 값을 비교하거나, 폰 대시보드에 기록을 남기기</div>
+  </div>
+
+  <div class="idea">
+    <h4>교내 화재·연기 감지 알람</h4>
+    <div class="who">환경 문제로 확장</div>
+    <p>연기가 감지되면 LED가 빨갛게 번지며 경보. MQ2가 연기에 반응하는 성질을 그대로 씁니다.</p>
+    <div class="diff">생각할 점 — MQ2는 연기와 다른 가스를 구분하지 못합니다. "진짜 불"만 잡아낼 수 있을까요? 이 한계를 발표에 담으면 좋은 재료가 됩니다</div>
+  </div>
+
+  <div class="idea">
+    <h4>흡연 감지 시스템</h4>
+    <div class="who">문제 상황이 뚜렷</div>
+    <p>화장실이나 특정 공간에서 담배 연기를 감지해 알림. 누가 겪는 어떤 문제인지가 분명해서 문제 정의가 쉽습니다.</p>
+    <div class="diff">생각할 점 — 담배 연기인지 다른 냄새인지 센서는 모릅니다. 그래도 "평소와 다른 변화"는 잡을 수 있어요</div>
+  </div>
+
+  <div class="idea">
+    <h4>폐활량 게임 (LED만)</h4>
+    <div class="who">가스 센서 없이도</div>
+    <p>입김을 세게 불수록 LED가 높이 차오르는 게임. 친구와 점수를 겨룰 수 있습니다. MQ2 대신 입김의 세기(값 변화)를 점수로 씁니다.</p>
+    <div class="diff">한 걸음 더 — 최고 기록을 저장하거나, 3초 안에 몇 칸까지 올리는지 타이머 넣기</div>
+  </div>
+
+  <div class="idea">
+    <h4>환기 알리미</h4>
+    <div class="who">일상의 불편에서</div>
+    <p>공기가 일정 수준 이상 나빠지면 "창문 여세요"를 LED와 화면으로 알림. 오래 켜두는 장치라 피코의 장점(꾸준함)과 잘 맞습니다.</p>
+    <div class="diff">한 걸음 더 — 며칠 동안 언제 공기가 나빴는지 기록해서 패턴 찾기</div>
+  </div>
+
+  <div class="note">
+    <div class="note-t">엉뚱한 것도 환영</div>
+    <p>지난 학기엔 "방귀 감지기"가 장난처럼 나왔는데, 알고 보니 실제로 만들 수 있었습니다. 웃긴 아이디어가 오히려 원리를 정확히 건드리는 경우가 많아요. 일단 많이 꺼내세요.</p>
+  </div>
+</section>
+
+<section id="pick" class="wrap">
+  <h2>활동 3. 주제 정하고 문제 정의하기</h2>
+  <div class="h2sub">목표 — "누구의 어떤 문제"인지 한 문장으로</div>
+
+  <p>아이디어를 하나 골랐다면, 만들기 전에 이 네 칸을 채워 보세요. 화이트보드나 종이에 그림으로 그려도 좋습니다.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="cm"># 문제 정의</span>
+
+누가   :  (이 문제를 겪는 사람)
+언제   :  (어떤 상황에서)
+문제   :  (무엇이 불편한가)
+
+내 장치 :  어떤 데이터를 재서 → 어떻게 알려줄 것인가</pre></div>
+
+  <p>예를 들어 이렇게요.</p>
+
+  <div class="quote">누가: 우리 반 학생들 / 언제: 6교시쯤 / 문제: 공기가 탁한데 아무도 모르고 넘어감 / 내 장치: MQ2로 공기를 재서 → 나빠지면 LED가 빨갛게 차오르고 폰으로 알림</div>
+
+  <div class="note tip">
+    <div class="note-t">센서가 할 수 없는 일도 적으세요</div>
+    <p>"MQ2는 연기 종류를 구분 못 한다", "정확한 농도는 모른다" 같은 것들이요. 이걸 아는 게 감점이 아니라 <strong>가점</strong>입니다. 발표 때 "우리 센서의 한계는 이것이다"를 말할 수 있으면 이해도가 높은 겁니다.</p>
+  </div>
+</section>
+
+<section id="build" class="wrap">
+  <h2>활동 4. 바이브 코딩으로 만들기</h2>
+  <div class="h2sub">목표 — 작게 시작해서 하나씩 더한다</div>
+
+  <p>한 번에 다 만들려고 하지 마세요. 지난 학기 학생의 가장 큰 깨달음이 이것이었습니다.</p>
+
+  <div class="quote">"한 번에 다 하려고 하지 말고 작게 작게 만들어가니까 됐다. 세 번 망해도 네 번째에 되면 그게 완성이다."</div>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">돌아가는 것부터</div>
+      <p>5·6차시 코드를 열어 일단 실행되게 만드세요. 빈 화면에서 시작하지 말고, 되는 것 위에 얹습니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">기능 하나씩 AI에게 부탁</div>
+      <p>"위험할 때 깜빡이게", "폰 화면에 경고 문구", "최고 기록 저장"처럼 <strong>한 번에 하나씩</strong>. 6차시에 배운 프롬프트 방식대로, 내 환경과 지금 코드를 함께 알려주세요.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">받은 코드를 내 값에 맞게</div>
+      <p>AI가 준 숫자는 내 센서 값이 아닙니다. 반드시 내가 잰 값으로 바꾸세요. 지난 학기 학생도 여기서 세 번 실패했습니다.</p>
+    </div>
+  </div>
+
+  <div class="quote">"AI가 만든 코드를 그대로 쓰지 말고, 내 상황에 맞게 숫자를 바꿔야 한다. 센서마다 평소 값이 다르다."</div>
+
+  <div class="note">
+    <div class="note-t">LED 부탁에는 꼭 이 문장을</div>
+    <p>6차시에서 배웠죠. AI는 우리가 WS2813을 쓰는지 모릅니다.</p>
+    <div class="code"><button class="copy">복사</button><pre>WS2813 네오픽셀이라 타이밍을 지정해야 해. 반드시 이렇게 써 줘.
+TIMING = (280, 515, 515, 745)
+led = NeoPixel(Pin(16), 10, timing=TIMING)</pre></div>
+  </div>
+
+  <div class="note tip">
+    <div class="note-t">AI와 나눈 대화를 남기세요</div>
+    <p>무엇을 물었고 어떻게 다시 물었는지가 <strong>수행평가 제출물</strong>입니다. 대화창을 복사해 둘 곳(구글 문서 등)을 미리 열어두고, 막힐 때마다 붙여넣으세요. 나중에 한꺼번에 모으려면 놓칩니다.</p>
+  </div>
+</section>
+
+<section id="readme" class="wrap">
+  <h2>활동 5. 친구에게 보여주고 고치기</h2>
+  <div class="h2sub">목표 — 남의 눈으로 내 것을 본다</div>
+
+  <p>어느 정도 됐으면 <strong>2명 이상</strong>에게 보여주고 의견을 들으세요. 그리고 <strong>최소 하나는 반영</strong>합니다. 지난 학기 학생의 가장 뿌듯한 순간이 여기서 나왔습니다.</p>
+
+  <div class="quote">민지: "입김 살짝 불었는데도 빨개진다. 너무 예민함" → 위험 기준을 좀 올렸더니 괜찮아졌다.<br>"처음엔 내가 만든 거니까 그냥 둘래 싶었는데, 바꿔보니 진짜 더 나아졌다."</div>
+
+  <p>숫자 하나 바꾸는 작은 수정이 큰 차이를 만듭니다. 친구 의견을 <strong>듣고 반영한 기록</strong>은 협력 점수와 직결됩니다.</p>
+
+  <div class="note">
+    <div class="note-t">보여줄 때 물어볼 것</div>
+    <p>"어때?"보다 구체적으로 물으세요. "이 기준이 너무 예민한 것 같아, 아니면 둔한 것 같아?", "이 색이 위험해 보여?", "설명 없이 봤을 때 뭘 하는 장치인지 알겠어?"</p>
+  </div>
+</section>
+
+<section id="log" class="wrap">
+  <h2>기록하기 — README와 LOG</h2>
+  <div class="h2sub">작년 학생 예시를 참고하세요</div>
+
+  <p>깃허브에 두 파일을 씁니다. <strong>README.md</strong>는 "무엇을 만들었나"(설명서), <strong>LOG.md</strong>는 "어떻게 만들었나"(과정 일기)예요.</p>
+
+  <h3>LOG.md — 과정을 그때그때</h3>
+
+  <p>매끄럽게 쓰지 마세요. <strong>망한 이야기가 핵심</strong>입니다. 지난 학기 LOG가 좋았던 이유가 그거예요.</p>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="cm"># 개발자 : ○○고 ○○○</span>
+<span class="cm"># 날짜 : 2026.XX.XX</span>
+
+<span class="cm">## 오늘 한 일</span>
+- 깃허브에 프로젝트 만들기
+- 친구들이랑 아이디어 회의
+- MQ2랑 LED 따로따로 연결해보기
+
+<span class="cm">## 어떤 걸 만들까</span>
+(나온 아이디어들, 고민한 과정, 왜 이걸 골랐는지)
+
+<span class="cm">## 잘 된 거 / 안 된 거</span>
+- 잘 됨 : ...
+- 안 됨 : 핀 번호를 16번이 아니라 14번에 꽂아놨다 ㅋㅋ
+
+<span class="cm">## 다음 시간 할 일</span>
+- ...</pre></div>
+
+  <div class="note">
+    <div class="note-t">이렇게 쓰면 좋은 기록</div>
+    <p>지난 학기 학생은 "첫 번째 시도 실패 / 두 번째 시도 실패 / 세 번째에 됨"을 그대로 적었습니다. 왜 실패했는지, AI에게 뭘 물었는지, 무슨 숫자를 바꿨는지까지요. <strong>실패 과정이 자세할수록 점수가 높습니다.</strong> 성공만 적은 기록은 오히려 비어 보여요.</p>
+  </div>
+
+  <h3>README.md — 완성되면 설명서로</h3>
+
+  <div class="code"><button class="copy">복사</button><pre><span class="cm"># (프로젝트 이름)</span>
+<span class="cm"># 팀원 : ...</span>
+
+<span class="cm">## 무엇을 만들었나</span>
+(한두 줄 설명)
+
+<span class="cm">## 어떤 부품으로</span>
+- 라즈베리파이 피코 2 W
+- MQ2 가스 센서 / RGB LED 스틱
+
+<span class="cm">## 어떻게 연결했나</span>
+| 부품 | 피코 핀 |
+|---|---|
+| MQ2 | A0 (GP26) |
+| LED | D16 (GP16) |
+
+<span class="cm">## 어떻게 작동하나</span>
+1. ...
+2. ...
+
+<span class="cm">## 자세한 과정</span>
+망한 이야기와 해결 과정은 LOG.md 에 있음</pre></div>
+
+  <div class="note tip">
+    <div class="note-t">완성된 main.py도 올리세요</div>
+    <p>최종 코드를 <code class="inl">main.py</code>에 올립니다. 코드에 <strong>주석</strong>을 달아두면 "한 달 뒤에 봐도 알아볼 수 있다"고 지난 학기 학생이 적었어요. 남을 위한 게 아니라 미래의 나를 위한 것입니다.</p>
+  </div>
+</section>
+
+<section id="share" class="wrap">
+  <h2>내 프로젝트 링크 공유하기</h2>
+  <div class="h2sub">완성했으면 주소를 제출하세요</div>
+
+  <p>깃허브 저장소는 <strong>주소(링크) 하나</strong>로 통째로 공유됩니다. 파일을 따로 보낼 필요가 없어요.</p>
+
+  <div class="step">
+    <div class="step-n">1</div>
+    <div class="step-b">
+      <div class="step-t">저장소 첫 화면으로 가기</div>
+      <p>내 저장소 이름을 클릭하면 파일 목록과 README가 보이는 첫 화면이 나옵니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">2</div>
+    <div class="step-b">
+      <div class="step-t">주소창의 링크를 복사</div>
+      <p>브라우저 맨 위 주소창을 보면 이런 모양입니다.</p>
+      <div class="code"><pre>https://github.com/<span class="cm">내아이디</span>/<span class="cm">저장소이름</span></pre></div>
+      <p>이 주소를 통째로 복사하세요. 이 링크 하나에 README, LOG, main.py가 다 들어 있습니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">3</div>
+    <div class="step-b">
+      <div class="step-t">초록색 Code 버튼으로도</div>
+      <p>주소창이 헷갈리면, 저장소 화면의 초록색 <strong>&lt;&gt; Code</strong> 버튼을 눌러도 링크가 나옵니다. 거기서 복사해도 됩니다.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">4</div>
+    <div class="step-b">
+      <div class="step-t">제출하기</div>
+      <p>복사한 링크를 <strong>띵커벨</strong>에 붙여넣어 제출합니다. 친구와 서로 볼 때도 이 링크를 주고받으면 돼요.</p>
+    </div>
+  </div>
+
+  <div class="note tip">
+    <div class="note-t">Public인지 확인하세요</div>
+    <p>저장소가 <strong>Private</strong>이면 나만 볼 수 있어서, 링크를 줘도 친구가 못 엽니다. 저장소 이름 옆에 <strong>Public</strong>이라고 적혀 있는지 확인하세요. Private이면 Settings 맨 아래에서 바꿀 수 있습니다.</p>
+  </div>
+
+  <div class="note">
+    <div class="note-t">wifi_config.py는 빠졌는지 확인</div>
+    <p>파일 목록에 <code class="inl">wifi_config.py</code>가 <strong>안 보여야</strong> 정상입니다. 보인다면 우클릭해서 지우거나, 그 파일에서 비밀번호를 지운 뒤 올리세요. 링크는 누구나 열 수 있으니까요.</p>
+  </div>
+</section>
+
+<section id="check" class="wrap">
+  <h2>마무리</h2>
+  <div class="h2sub">오늘 남길 것</h2>
+
+  <p>완성 못 해도 괜찮습니다. 다음 시간까지 이어져요. 오늘은 <strong>시작했다는 것</strong>과 <strong>과정을 남겼다는 것</strong>이 중요합니다.</p>
+
+  <ul class="check" id="cl">
+    <li><input type="checkbox" id="c1"><label for="c1">깃허브 저장소를 만들었다</label></li>
+    <li><input type="checkbox" id="c2"><label for="c2">무엇을 만들지 정하고 문제를 한 문장으로 적었다</label></li>
+    <li><input type="checkbox" id="c3"><label for="c3">"내 센서가 할 수 없는 일"을 하나 적었다</label></li>
+    <li><input type="checkbox" id="c4"><label for="c4">바이브 코딩으로 뭔가 작동하게 만들었다</label></li>
+    <li><input type="checkbox" id="c5"><label for="c5">AI와 나눈 대화를 복사해 뒀다</label></li>
+    <li><input type="checkbox" id="c6"><label for="c6">친구에게 보여주고 의견을 하나 이상 반영했다</label></li>
+    <li><input type="checkbox" id="c7"><label for="c7">LOG.md에 오늘 과정을 기록했다</label></li>
+    <li><input type="checkbox" id="c8"><label for="c8">(완성했다면) 깃허브 링크를 띵커벨에 제출했다</label></li>
+  </ul>
+
+  <div class="note">
+    <div class="note-t">느낀 점도 한 줄</div>
+    <p>지난 학기 학생은 이렇게 마쳤습니다. "만들기 전엔 내가 이걸 만들 수 있을까 싶었는데, 작게 작게 만들어가니까 됐다. 망하는 것도 괜찮다는 걸 알았다." 여러분의 한 줄도 LOG에 남겨주세요.</p>
+  </div>
+</section>
+
+<section class="wrap" style="border:none;padding-top:0">
+  <div class="next">
+    <h2>다음 시간 예고</h2>
+    <p>미니 프로젝트를 마무리하고, 이제 <strong>본 프로젝트</strong>로 갑니다. 중간고사 뒤에는 새로운 센서들을 만나요. 얼굴과 사물을 알아보는 <strong>AI 카메라(허스키렌즈)</strong>도 써봅니다.</p>
+    <p>오늘 "이 센서로는 이게 안 되네" 싶었던 것, "이런 걸 재보고 싶다" 싶었던 것을 기억해 두세요. 그게 <strong>다음에 신청할 센서</strong>를 고르는 이유가 됩니다.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p>인공지능과 피지컬 컴퓨팅 · 7차시 LED × MQ2 미니 PJ</p>
+  <p style="margin-top:.3rem">라즈베리파이 피코 2 W + MQ2 + WS2813 LED</p>
+</footer>
+
+<script>
+(function(){
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var code=btn.parentNode.querySelector('pre').innerText;
+      var done=function(){btn.textContent='복사됨';setTimeout(function(){btn.textContent='복사';},1400);};
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(code).then(done,function(){btn.textContent='실패';});
+      } else {
+        var ta=document.createElement('textarea');
+        ta.value=code; document.body.appendChild(ta); ta.select();
+        try{document.execCommand('copy');done();}catch(e){btn.textContent='실패';}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+  var boxes=document.querySelectorAll('#cl input[type=checkbox]'), KEY='pico-ch7-check', saved={};
+  try{ saved=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ saved={}; }
+  boxes.forEach(function(b){
+    if(saved[b.id]) b.checked=true;
+    b.addEventListener('change',function(){
+      saved[b.id]=b.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+    });
+  });
+})();
+</script>
+</body>
+</html>
