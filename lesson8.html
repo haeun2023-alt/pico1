@@ -181,6 +181,14 @@ button.p[aria-pressed="true"]{background:var(--board);border-color:var(--board);
 .port{font-family:'IBM Plex Mono',monospace;font-size:.85em;font-weight:600;color:var(--copper)}
 .fig{border:1px dashed var(--rule);background:var(--paper-2);padding:1.4rem 1rem;text-align:center;
   font-size:.82rem;color:var(--ink-soft);margin:1.2rem 0;border-radius:3px}
+.shot{margin:1.4rem 0}
+.shot img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:3px;background:#fff}
+.shot img.narrow{max-width:440px;margin:0 auto}
+.shot .pair{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center}
+.shot .pair img{width:auto;max-width:100%;flex:0 1 auto;min-width:0}
+.shot figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:.5rem}
+.sum{background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;padding:.8rem 1.1rem;margin:1rem 0;font-size:.92rem}
+.sum b{font-weight:600}
 
 .hl{padding:1.5rem 1rem .5rem;display:flex;flex-direction:column;align-items:center;gap:.75rem}
 .hl-screen{position:relative;width:100%;max-width:400px;aspect-ratio:4/3;
@@ -283,10 +291,10 @@ details.lib pre{max-height:24rem}
     <thead><tr><th>준비물</th><th>확인할 점</th></tr></thead>
     <tbody>
       <tr><th>피코 + 그로브 쉴드</th><td>피코가 쉴드에 제대로 꽂혀 있는지</td></tr>
-      <tr><th>허스키렌즈</th><td>뒷면 화면에 보호 필름이 있으면 떼도 됩니다</td></tr>
+      <tr><th>허스키렌즈</th><td>화면에 보호 필름이 있으면 떼도 됩니다</td></tr>
       <tr><th>연결 케이블</th><td>그로브 쪽, 허스키렌즈 쪽 케이블</td></tr>
       <tr><th>LED 스틱 (또는 스트립)</th><td>활동 6에서 씁니다</td></tr>
-      <tr><th>USB 케이블</th><td>데이터 전송용</td></tr>
+      <tr><th>USB 케이블</th><td>데이터 전송용. 피코에 꽂습니다</td></tr>
     </tbody>
   </table>
   </div>
@@ -315,20 +323,48 @@ details.lib pre{max-height:24rem}
 
   <h3>생김새</h3>
 
+  <figure class="shot">
+    <div class="pair">
+      <img src="huskylens-screen.png" alt="허스키렌즈 화면 쪽 그림. 가운데 화면이 있고, 위 왼쪽에 기능 버튼, 위 오른쪽에 학습 버튼, 아래에 고정 구멍이 있다">
+      <img src="huskylens-camera.png" alt="허스키렌즈 카메라 쪽 그림. 가운데 카메라, 위에 RGB LED, 양쪽에 LED, 왼쪽에 TF 카드 슬롯, 왼쪽 아래에 UART/I2C 단자, 오른쪽 아래에 USB 단자가 있다">
+    </div>
+    <figcaption>첫 번째 그림은 화면 쪽, 두 번째 그림은 카메라 쪽입니다. 그림 속 영어 이름은 아래 표에서 확인하세요</figcaption>
+  </figure>
+
   <div class="tw">
   <table>
     <thead><tr><th>부분</th><th>하는 일</th></tr></thead>
     <tbody>
-      <tr><th>카메라 (앞면)</th><td>앞을 본다</td></tr>
-      <tr><th>화면 (뒷면)</th><td>무엇을 알아봤는지 보여준다</td></tr>
-      <tr><th>기능 버튼</th><td><strong>돌리고 누르는</strong> 다이얼. 돌리면 기능이 바뀌고, 누르면 설정으로 들어간다</td></tr>
-      <tr><th>학습 버튼</th><td><strong>그냥 누르는</strong> 버튼. 지금 보이는 것을 기억시키거나 잊게 한다</td></tr>
-      <tr><th>4핀 단자</th><td>피코와 연결하는 곳</td></tr>
+      <tr><th>Camera<br>카메라</th><td>앞을 본다</td></tr>
+      <tr><th>Screen<br>화면</th><td>카메라가 보는 장면과 무엇을 알아봤는지 보여준다</td></tr>
+      <tr><th>Function Button<br>기능 버튼</th><td><strong>돌리고 누르는</strong> 다이얼. 좌우로 돌리면 기능이나 설정 항목이 바뀌고, 누르면 선택된다</td></tr>
+      <tr><th>Learning Button<br>학습 버튼</th><td><strong>그냥 누르는</strong> 버튼. 지금 보이는 것을 학습시키거나 잊게 한다</td></tr>
+      <tr><th>UART/I2C<br>4핀 단자</th><td>피코와 연결하는 곳. 단자 위에 <strong>T R − +</strong>가 적혀 있다</td></tr>
+      <tr><th>USB Connector<br>USB 단자</th><td>허스키렌즈 펌웨어 업데이트용. <strong>오늘은 쓰지 않는다</strong> (USB 케이블은 피코에 꽂는다)</td></tr>
+      <tr><th>LED · RGB LED</th><td>LED는 어두울 때 비추는 보조등, RGB LED는 지금 상태를 색으로 알려준다</td></tr>
+      <tr><th>TF Card Slot</th><td>마이크로 SD 카드를 꽂아 사진이나 학습 결과를 저장한다 (오늘은 쓰지 않는다)</td></tr>
     </tbody>
   </table>
   </div>
 
-  <div class="fig">허스키렌즈 앞면 · 뒷면 <span style="opacity:.7">(사진 삽입 예정)</span></div>
+  <h3>오늘 쓰는 버튼 두 개</h3>
+
+  <p>오늘은 <strong>기능 버튼</strong>, <strong>학습 버튼</strong>, 그리고 피코와 잇는 <strong>4핀 단자</strong> 위치만 알면 됩니다.</p>
+
+  <figure class="shot">
+    <img class="narrow" src="huskylens-buttons.png" alt="허스키렌즈 카메라 쪽 그림. 왼쪽 위 작은 버튼에 press, 오른쪽 위 다이얼에 press와 dial left or right 화살표가 표시되어 있다. 왼쪽 아래에 T R − + 가 적힌 흰 단자가 있다">
+    <figcaption>카메라 쪽에서 본 모습. 왼쪽 위 작은 버튼이 학습 버튼, 오른쪽 위 다이얼이 기능 버튼입니다. 왼쪽 아래 흰 단자(T R − +)에 허스키렌즈 케이블을 꽂습니다</figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>버튼</th><th>이렇게 쓴다</th></tr></thead>
+    <tbody>
+      <tr><th>기능 버튼<br>(다이얼)</th><td><strong>좌우로 돌리기</strong> → 기능이나 설정 항목으로 이동<br><strong>누르기</strong> → 선택</td></tr>
+      <tr><th>학습 버튼</th><td><strong>누르기</strong> → 지금 화면 가운데 보이는 것을 학습</td></tr>
+    </tbody>
+  </table>
+  </div>
 
   <h3>할 수 있는 일 일곱 가지</h3>
 
@@ -359,6 +395,8 @@ details.lib pre{max-height:24rem}
   <h2>활동 1. 연결하기</h2>
   <div class="h2sub">목표 — 전원을 넣기 전에 선 네 가닥을 정확히 맞춘다</div>
 
+  <div class="sum"><b>한눈에 보기</b> · 포트 <span class="port">I2C1</span> · 전원 스위치 <strong>5V</strong> · 노랑–파랑 · 흰색–초록 · 빨강–빨강 · 검정–검정</div>
+
   <div class="step">
     <div class="step-n">1</div>
     <div class="step-b">
@@ -378,6 +416,14 @@ details.lib pre{max-height:24rem}
   <div class="step">
     <div class="step-n">3</div>
     <div class="step-b">
+      <div class="step-t">허스키렌즈 케이블 꽂기</div>
+      <p>허스키렌즈 케이블의 흰 커넥터를 허스키렌즈의 <strong>4핀 단자(T R − +)</strong>에 꽂습니다. 위 그림에서 카메라 쪽 왼쪽 아래에 있는 흰 단자예요.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-n">4</div>
+    <div class="step-b">
       <div class="step-t">색을 맞춰 잇기</div>
       <p>그로브 쪽 선과 허스키렌즈 쪽 선을 아래처럼 잇습니다. <strong>색이 서로 다른 짝</strong>이 있으니 주의하세요.</p>
     </div>
@@ -392,7 +438,7 @@ details.lib pre{max-height:24rem}
   </div>
 
   <div class="step">
-    <div class="step-n">4</div>
+    <div class="step-n">5</div>
     <div class="step-b">
       <div class="step-t">전원 넣기 전 확인</div>
       <p><strong>빨강끼리, 검정끼리</strong> 이어졌는지 한 번 더 보세요. 이 둘이 바뀌면 허스키렌즈가 고장 날 수 있습니다. 확인했으면 사진을 찍어 두세요. 잘 모르겠으면 사진을 채팅에 올리고 확인받은 뒤 전원을 넣습니다.</p>
@@ -400,10 +446,10 @@ details.lib pre{max-height:24rem}
   </div>
 
   <div class="step">
-    <div class="step-n">5</div>
+    <div class="step-n">6</div>
     <div class="step-b">
       <div class="step-t">USB 연결</div>
-      <p>노트북에 꽂으면 몇 초 뒤 허스키렌즈 뒷면 화면이 켜집니다. 화면에 카메라가 보는 장면이 나오면 성공입니다.</p>
+      <p>USB 케이블은 <strong>피코</strong>에 꽂고 노트북에 연결합니다. 허스키렌즈의 USB 단자에는 꽂지 않아요. 몇 초 뒤 허스키렌즈 화면도 함께 켜지고, 카메라가 보는 장면이 나오면 성공입니다.</p>
     </div>
   </div>
 
